@@ -9,7 +9,9 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    FredokaOne: require('../assets/fonts/FredokaOne-Regular.ttf'),
+    QuicksandBold: require('../assets/fonts/Quicksand-Bold.ttf'),
+    Quicksand: require('../assets/fonts/Quicksand-Regular.ttf'),
   });
 
   if (!loaded) {

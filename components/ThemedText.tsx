@@ -35,26 +35,28 @@ export function ThemedText({
 
 const styles = StyleSheet.create({
   default: {
+    fontFamily: 'Quicksand',
     fontSize: 16,
     lineHeight: 24,
   },
   defaultSemiBold: {
+    fontFamily: 'QuicksandBold',
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '600',
   },
   title: {
+    fontFamily: 'FredokaOne',
     fontSize: 32,
-    fontWeight: 'bold',
     lineHeight: 32,
   },
   subtitle: {
+    fontFamily: 'QuicksandBold',
     fontSize: 20,
-    fontWeight: 'bold',
   },
   link: {
-    lineHeight: 30,
+    fontFamily: 'Quicksand',
     fontSize: 16,
+    lineHeight: 30,
     color: '#0a7ea4',
   },
 });
