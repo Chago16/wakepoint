@@ -5,6 +5,7 @@
     "baseUrl": ".",               // ✅ REQUIRED for "paths" to work
     "paths": {
       "@utils/*": ["utils/*"],    // ✅ your alias for utils
+      "@assets/*": ["assets/*"],
       "@/*": ["./*"]              // optional: shortcut for root imports
     }
   },
