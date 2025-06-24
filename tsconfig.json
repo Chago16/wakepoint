@@ -2,10 +2,10 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",               // ✅ REQUIRED for "paths" to work
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@utils/*": ["utils/*"],    // ✅ your alias for utils
+      "@/*": ["./*"]              // optional: shortcut for root imports
     }
   },
   "include": [
