@@ -1,9 +1,8 @@
-import { router, Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
+import { HapticTab } from '@/components/HapticTab';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -19,23 +18,16 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-            backgroundColor: theme.tabBarBackground,
-            height: 70,
-            paddingBottom: 10,
-          },
-          android: {
-            backgroundColor: theme.tabBarBackground,
-            height: 70,
-            paddingBottom: 10,
-          },
-        }),
+        tabBarStyle: {
+          position: 'absolute',
+          backgroundColor: theme.tabBarBackground,
+          height: 70,
+          paddingBottom: 10,
+        },
       }}
     >
       <Tabs.Screen
-        name="(home)/dashboard"
+        name="dashboard"
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
@@ -44,16 +36,15 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Center custom Set Alarm button */}
       <Tabs.Screen
-        name="(noop)" // placeholder route, won't match any screen
+        name="noop"
         options={{
           title: '',
           tabBarIcon: () => null,
           tabBarButton: () => (
             <View style={styles.plusWrapper}>
               <TouchableOpacity
-                onPress={() => router.push('/choose')}
+                onPress={() => router.push('/(route-alarms)/choose')}
                 style={[
                   styles.plusButton,
                   {
@@ -71,10 +62,9 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="(home)/history"
+        name="history"
         options={{
           title: 'History',
-          tabBarButton: (props) => <CompactTabButton {...props} />,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="clock.fill" color={color} />
           ),
@@ -85,11 +75,6 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  compactButtonWrapper: {
-    flex: 0.8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   plusWrapper: {
     flex: 1,
     alignItems: 'center',
