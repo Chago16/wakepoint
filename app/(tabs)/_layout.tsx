@@ -11,12 +11,6 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
-  const CompactTabButton = (props: any) => (
-    <View style={styles.compactButtonWrapper}>
-      <HapticTab {...props} />
-    </View>
-  );
-
   return (
     <Tabs
       screenOptions={{
@@ -44,7 +38,6 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarButton: (props) => <CompactTabButton {...props} />,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
@@ -77,8 +70,7 @@ export default function TabLayout() {
                   <Text style={[styles.plusText, { color: theme.tabBarBackground }]}>+</Text>
                 </TouchableOpacity>
 
-                {/* Match label styling of other tabs */}
-                <Text style={[styles.tabLabel, { color: Text }]}>Set Alarm</Text>
+                <Text style={[styles.tabLabel, { color: theme.text }]}>Set Alarm</Text>
               </View>
             );
           },
@@ -89,7 +81,6 @@ export default function TabLayout() {
         name="map"
         options={{
           title: 'Explore',
-          tabBarButton: (props) => <CompactTabButton {...props} />,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="paperplane.fill" color={color} />
           ),
@@ -100,11 +91,6 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  compactButtonWrapper: {
-    flex: 0.8, // reduce space taken by side tabs
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   plusWrapper: {
     flex: 1,
     alignItems: 'center',
