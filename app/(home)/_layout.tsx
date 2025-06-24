@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
@@ -35,7 +35,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="(home)/dashboard"
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
@@ -44,45 +44,39 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Center custom Set Alarm button */}
       <Tabs.Screen
-        name="test"
+        name="(noop)" // placeholder route, won't match any screen
         options={{
           title: '',
           tabBarIcon: () => null,
-          tabBarButton: ({ onPress, accessibilityState }) => {
-            const focused = accessibilityState?.selected;
-            const labelColor = focused
-              ? theme.tabIconSelected
-              : theme.tabIconDefault;
-
-            return (
-              <View style={styles.plusWrapper}>
-                <TouchableOpacity
-                  onPress={onPress}
-                  style={[
-                    styles.plusButton,
-                    {
-                      backgroundColor: theme.text,
-                      borderColor: theme.tabBarBackground,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.plusText, { color: theme.tabBarBackground }]}>+</Text>
-                </TouchableOpacity>
-
-                <Text style={[styles.tabLabel, { color: theme.text }]}>Set Alarm</Text>
-              </View>
-            );
-          },
+          tabBarButton: () => (
+            <View style={styles.plusWrapper}>
+              <TouchableOpacity
+                onPress={() => router.push('/choose')}
+                style={[
+                  styles.plusButton,
+                  {
+                    backgroundColor: theme.text,
+                    borderColor: theme.tabBarBackground,
+                  },
+                ]}
+              >
+                <Text style={[styles.plusText, { color: theme.tabBarBackground }]}>+</Text>
+              </TouchableOpacity>
+              <Text style={[styles.tabLabel, { color: theme.tabIconDefault }]}>Set Alarm</Text>
+            </View>
+          ),
         }}
       />
 
       <Tabs.Screen
-        name="map"
+        name="(home)/history"
         options={{
-          title: 'Explore',
+          title: 'History',
+          tabBarButton: (props) => <CompactTabButton {...props} />,
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="clock.fill" color={color} />
           ),
         }}
       />
@@ -91,6 +85,11 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  compactButtonWrapper: {
+    flex: 0.8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   plusWrapper: {
     flex: 1,
     alignItems: 'center',
@@ -111,10 +110,10 @@ const styles = StyleSheet.create({
     marginTop: -25,
   },
   tabLabel: {
-  fontSize: 10,
-  lineHeight: 16,
-  textAlign: 'center',
-  marginTop: -3,
-  fontWeight: Platform.OS === 'android' ? '700' : '600', // match native boldness
+    fontSize: 10,
+    lineHeight: 16,
+    textAlign: 'center',
+    marginTop: -3,
+    fontWeight: Platform.OS === 'android' ? '700' : '600',
   },
 });
