@@ -12,16 +12,17 @@ export default function ChooseScreen() {
         }}
       />
       <View style={styles.container}>
-        <ThemedText type="titleLarge">
+        <View style={styles.container2}>
+        <ThemedText type="titleLarge" style={{ color: '#CFC8F3' }}>
           WakePoint
         </ThemedText>
-
+        </View>
         <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Use a Saved Alarm</Text>
+          <ThemedText type="button">Use a Saved Alarm</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Create New</Text>
+        <TouchableOpacity style={styles.button2}>
+          <ThemedText type="button" style={{ color: '#ffffff' }}>Create New</ThemedText>
         </TouchableOpacity>
       </View>
     </>
@@ -36,16 +37,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  button: {
-    backgroundColor: '#CFC8F3',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 12,
-    marginVertical: 10,
+  container2: {
+    marginBottom: 30,
   },
-  buttonText: {
-    fontSize: 18,
-    color: '#145E4D',
-    fontWeight: '600',
+  button: {
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 7,
+    marginVertical: 10,
+    width: '80%',
+    elevation: 5,
+  },
+  button2: {
+    backgroundColor: '#145E4D',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 7,
+    marginVertical: 10,
+    width: '80%',
+    elevation: 5,
   },
 });
