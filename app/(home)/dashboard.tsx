@@ -8,7 +8,7 @@ import { ThemedView } from '@/components/ThemedView';
 export default function HomeScreen() {
   return (
     <ImageBackground
-        source={require('@/assets/images/dashboardBG.png')} //wakepoint-splash-image
+        source={require('@/assets/images/dashboardBG.png')} //wakepoint-splash-image   dashboardBG
         style={styles.background}
         resizeMode="cover"
       >
