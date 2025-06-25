@@ -21,10 +21,20 @@ export default function TabLayout() {
         tabBarStyle: {
           position: 'absolute',
           backgroundColor: theme.tabBarBackground,
-          height: 70,
+          height: 80,
+          paddingTop: 10,
           paddingBottom: 10,
+          // Drop shadow at the top
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 10,
+          elevation: 15,
+          borderTopWidth: 0,
         },
-      }}
+        
+      }}  
+
     >
       <Tabs.Screen
         name="dashboard"
@@ -43,6 +53,15 @@ export default function TabLayout() {
           tabBarIcon: () => null,
           tabBarButton: () => (
             <View style={styles.plusWrapper}>
+              {/* Stroke layer */}
+              <View
+                style={[
+                  styles.plusOutline,
+                  {
+                    backgroundColor: theme.tabBarBackground,
+                  },
+                ]}
+              />
               <TouchableOpacity
                 onPress={() => router.push('/(route-alarms)/choose')}
                 style={[
@@ -53,9 +72,9 @@ export default function TabLayout() {
                   },
                 ]}
               >
-                <Text style={[styles.plusText, { color: theme.tabBarBackground }]}>+</Text>
+                <IconSymbol name="plus" size={60} color={theme.tabBarBackground} />
               </TouchableOpacity>
-              <Text style={[styles.tabLabel, { color: theme.tabIconDefault }]}>Set Alarm</Text>
+              <Text style={[styles.tabLabel, { color: theme.text }]}>Set Alarm</Text>
             </View>
           ),
         }}
@@ -66,7 +85,7 @@ export default function TabLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="clock.fill" color={color} />
+            <IconSymbol size={28} name="doc.text" color={color} />
           ),
         }}
       />
@@ -79,20 +98,24 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    top: -20,
+    top: -29,
+    position: 'relative',
   },
   plusButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  plusText: {
-    fontFamily: 'QuicksandBold',
-    fontSize: 64,
-    marginTop: -25,
+  plusOutline: {
+    position: 'absolute',
+    width: 82, // slightly larger than button
+    height: 82,
+    borderRadius: 41,
+    backgroundColor: '#fff',
+    zIndex: -1,
   },
   tabLabel: {
     fontSize: 10,
@@ -102,3 +125,5 @@ const styles = StyleSheet.create({
     fontWeight: Platform.OS === 'android' ? '700' : '600',
   },
 });
+
+
