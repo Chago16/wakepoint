@@ -37,8 +37,8 @@ export default function ChooseScreen() {
 
   const handleUseAsAlarm = () => {
     if (selectedIndex !== null) {
-      // Your logic here
       console.log('Selected Route:', sampleRoutes[selectedIndex]);
+      router.push('/pretrip-options');
     }
   };
 
