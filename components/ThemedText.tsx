@@ -5,7 +5,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'titleLarge' | 'titleSmall' | 'defaultSemiBold' | 'subtitle1' | 'subtitle2' |'link';
+  type?: 'default' | 'title' | 'titleLarge' | 'titleSmall' | 'defaultSemiBold' | 'subtitle1' | 'subtitle2' |'link' |'option' |'button';
 };
 
 export function ThemedText({
@@ -29,6 +29,8 @@ export function ThemedText({
         type === 'subtitle1' ? styles.subtitle1 : undefined,
         type === 'subtitle2' ? styles.subtitle2 : undefined,
         type === 'link' ? styles.link : undefined,
+        type === 'option' ? styles.option : undefined,
+        type === 'button' ? styles.button : undefined,
         style,
       ]}
       {...rest}
@@ -75,5 +77,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 30,
     color: '#0a7ea4',
+  },
+  option: {
+    fontFamily: 'QuicksandBold',
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  button: {
+    fontFamily: 'QuicksandBold',
+    fontSize: 18,
+    lineHeight: 25,
   },
 });

@@ -1,7 +1,8 @@
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { ImageBackground, Platform, StyleSheet } from 'react-native';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Image, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
 
 
 export default function HomeScreen() {
@@ -22,37 +23,51 @@ export default function HomeScreen() {
             </ThemedView>
             <ThemedText type="defaultSemiBold">We are here to wake you up </ThemedText>
           </ThemedView>
+          <TouchableOpacity onPress={() => console.log('Logout')} style={{ marginTop: 5 }}>
+            <IconSymbol name="rectangle.portrait.and.arrow.right" size={28} color="black" />
+          </TouchableOpacity>
         </ThemedView>
 
         <ThemedView style={styles.stepContainer}>
-          <ThemedText type="titleSmall">Step 1: Try it</ThemedText>
-          <ThemedText>
-            Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-            Press{' '}
-            <ThemedText type="defaultSemiBold">
-              {Platform.select({
-                ios: 'cmd + d',
-                android: 'cmd + m',
-                web: 'F12',
-              })}
-            </ThemedText>{' '}
-            to open developer tools.
-          </ThemedText>
+          <ThemedText type="titleSmall">Current Trip</ThemedText>
+        </ThemedView>
+
+        <ThemedView style={styles.middleContainer}>
+          <ThemedText type="titleSmall">Quick Options</ThemedText>
+          <ThemedView style={styles.optionsContainer}>
+
+            <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
+              <Image
+                source={require('@/assets/images/quick-icon-1.png')} 
+                style={{ width: 58, height: 58, marginBottom: 4 }}
+                resizeMode="contain"
+              />
+              <ThemedText type="option" style={{ textAlign: 'center' }}>Set{'\n'}Trip Alarm</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
+              <Image
+                source={require('@/assets/images/quick-icon-2.png')} 
+                style={{ width: 58, height: 58, marginBottom: 4 }}
+                resizeMode="contain"
+              />
+              <ThemedText type="option" style={{ textAlign: 'center' }}>Go to{'\n'}Current Trip</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
+              <Image
+                source={require('@/assets/images/quick-icon-3.png')} 
+                style={{ width: 58, height: 58, marginBottom: 4 }}
+                resizeMode="contain"
+              />
+              <ThemedText type="option" style={{ textAlign: 'center' }}>View{'\n'}Trip History</ThemedText>
+            </TouchableOpacity>
+
+          </ThemedView>
         </ThemedView>
 
         <ThemedView style={styles.stepContainer}>
-          <ThemedText type="subtitle1">Step 2: Explore</ThemedText>
-          <ThemedText>
-            Tap the Explore tab to learn more about what's included in this starter app.
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedView style={styles.stepContainer}>
-          <ThemedText type="subtitle1">Step 3: Get a fresh start</ThemedText>
-          <ThemedText>
-            When you're ready, run <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText>{' '}
-            to get a fresh <ThemedText type="defaultSemiBold">app</ThemedText> directory.
-          </ThemedText>
+          <ThemedText type="titleSmall">Recent Trips</ThemedText>
         </ThemedView>
     </ParallaxScrollView>
 
@@ -77,6 +92,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  middleContainer: {
+    flexDirection: 'column',
+  },
+  optionsContainer: {
+     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 5,
+    
+  },
+  optionButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    padding: 8,
+    borderRadius: 12,
+    width: 80, 
+    elevation: 10,
+  },
+
   headerContainer: {
     flexDirection: 'column',
   },
