@@ -23,13 +23,9 @@ export default function HomeScreen() {
             <ThemedText type="defaultSemiBold">We are here to wake you up </ThemedText>
           </ThemedView>
         </ThemedView>
-        
-
-        <ThemedView style={styles.titleContainer}>
-        </ThemedView>
 
         <ThemedView style={styles.stepContainer}>
-          <ThemedText type="subtitle1">Step 1: Try it</ThemedText>
+          <ThemedText type="titleSmall">Step 1: Try it</ThemedText>
           <ThemedText>
             Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
             Press{' '}
