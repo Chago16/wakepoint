@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    top: -25,
+    top: -29,
     position: 'relative',
   },
   plusButton: {
