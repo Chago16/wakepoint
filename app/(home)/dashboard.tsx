@@ -2,10 +2,22 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Image, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Image, ImageBackground, NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+
 
 
 export default function HomeScreen() {
+  const [currentIndex, setCurrentIndex] = useState(1);
+  const scrollRef = useRef<ScrollView>(null);
+  const cards = [0, 1, 2]; // previous, current, upcoming
+
+  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / 282); // 270 width + 12 margin
+    setCurrentIndex(index);
+  };
+
   return (
     <ImageBackground
         source={require('@/assets/images/dashboardBG.png')} //wakepoint-splash-image   dashboardBG
@@ -41,6 +53,7 @@ export default function HomeScreen() {
             decelerationRate="fast"
             snapToAlignment="start"
             bounces={false}
+            onMomentumScrollEnd={handleScrollEnd} 
           >
             {[1, 2, 3].map((_, i) => {
               const isActive = i === 1;
@@ -58,14 +71,18 @@ export default function HomeScreen() {
                     {tripLabel}
                   </ThemedText>
 
-                  <View style={styles.justifyContainer}>
-                    <ThemedText type="option" style={isActive ? styles.activeTripText : undefined}>
-                      Est: 00 hr 00 mins
-                    </ThemedText>
-                    <ThemedText type="option" style={isActive ? styles.activeTripText : undefined}>
-                      00km away
-                    </ThemedText>
-                  </View>
+                  {isActive ? (
+                    <View style={styles.justifyContainer}>
+                      <ThemedText type="option" style={styles.activeTripText}>
+                        Est: 00 hr 00 mins
+                      </ThemedText>
+                      <ThemedText type="option" style={styles.activeTripText}>
+                        00km away
+                      </ThemedText>
+                    </View>
+                  ) : (
+                    <View style={{ height: 22 }} /> // keeps the spacing even when not active
+                  )}
 
                   {/* ✅ Always reserve space for progress bar, but only show if active */}
                   <View style={styles.progressBarWrapper}>
@@ -104,7 +121,21 @@ export default function HomeScreen() {
               );
             })}
           </ScrollView>
+          {/* Pagination Dots */}
+          <View style={styles.paginationContainer}>
+            {cards.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  currentIndex === index ? styles.activeDot : styles.inactiveDot,
+                ]}
+              />
+            ))}
+          </View>
         </ThemedView>
+
+        <View style={styles.containerSeparator} />
 
         <ThemedView style={styles.middleContainer}>
           <ThemedText type="titleSmall">Quick Options</ThemedText>
@@ -139,6 +170,8 @@ export default function HomeScreen() {
 
           </ThemedView>
         </ThemedView>
+
+        <View style={styles.containerSeparator} />
 
         <ThemedView style={styles.bottomContainer}>
           <ThemedText type="titleSmall">Recent Trips</ThemedText>
@@ -228,7 +261,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   progressBarWrapper: {
-  marginVertical: 8,
+    marginVertical: 0,
   },
   progressBarBackground: {
     width: '100%',
@@ -241,6 +274,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#A69DDA',
     borderRadius: 20,
   },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 3,
+  },
+  dot: {
+    width: 30,
+    height: 5,
+    borderRadius: 0,
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    backgroundColor: '#145E4D',
+    transform: [{ scale: 1.3 }],
+  },
+  inactiveDot: {
+    backgroundColor: '#ccc',
+  },
   tripCard: {
     backgroundColor: '#B6C6C3',
     padding: 16,
@@ -252,6 +303,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     paddingLeft: 32,
     paddingRight: 32,
+    marginTop: -5,
   },
   optionsContainer: {
      flexDirection: 'row',
@@ -301,5 +353,13 @@ const styles = StyleSheet.create({
     width: 160,
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  containerSeparator: {
+    height: 1,
+    backgroundColor: '#ccc', // or any neutral color
+    marginVertical: 0,
+    opacity: 0.5,             // optional for a softer line
+    marginLeft: 32,
+    marginRight: 32,
   },
 });
