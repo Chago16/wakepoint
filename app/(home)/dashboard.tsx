@@ -2,7 +2,7 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Image, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image, ImageBackground, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 
 export default function HomeScreen() {
@@ -13,7 +13,10 @@ export default function HomeScreen() {
         resizeMode="cover">
     <ParallaxScrollView
       headerBackgroundColor={{ light: 'transparent', dark: 'transparent' }}
-      headerImage={<></>}>
+      headerImage={<></>}
+      contentContainerStyle={{ flexGrow: 1 }}
+      >
+        
 
         <ThemedView style={styles.topContainer}>
           <ThemedView style={styles.headerContainer}>
@@ -28,8 +31,79 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </ThemedView>
 
-        <ThemedView style={styles.stepContainer}>
-          <ThemedText type="titleSmall">Current Trip</ThemedText>
+        <ThemedView style={styles.currentContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tripScrollContainer}
+            style={styles.tripScroll}
+            snapToInterval={282} // 270 width + 12 margin
+            decelerationRate="fast"
+            snapToAlignment="start"
+            bounces={false}
+          >
+            {[1, 2, 3].map((_, i) => {
+              const isActive = i === 1;
+
+              // dynamic title
+              let tripLabel = 'Current Trip';
+              if (!isActive) tripLabel = i === 0 ? 'Previous Checkpoint' : 'Upcoming Checkpoint';
+
+              return (
+                <View
+                  key={i}
+                  style={[styles.tripCard, isActive && styles.activeTripCard]}>
+                  
+                  <ThemedText type="defaultSemiBold" style={isActive ? styles.activeTripText : undefined}>
+                    {tripLabel}
+                  </ThemedText>
+
+                  <View style={styles.justifyContainer}>
+                    <ThemedText type="option" style={isActive ? styles.activeTripText : undefined}>
+                      Est: 00 hr 00 mins
+                    </ThemedText>
+                    <ThemedText type="option" style={isActive ? styles.activeTripText : undefined}>
+                      00km away
+                    </ThemedText>
+                  </View>
+
+                  {/* ✅ Always reserve space for progress bar, but only show if active */}
+                  <View style={styles.progressBarWrapper}>
+                    {isActive ? (
+                      <View style={styles.progressBarBackground}>
+                        <View style={[styles.progressBarFill, { width: '45%' }]} />
+                      </View>
+                    ) : (
+                      <View style={{ height: 20 }} /> // placeholder for layout consistency
+                    )}
+                  </View>
+
+                  <View style={styles.justifyContainer}>
+                    <View style={styles.endpointLeft}>
+                      <ThemedText
+                        type="default"
+                        numberOfLines={2}
+                        style={[styles.endpointText, isActive && styles.activeTripText]}>
+                        Origin
+                      </ThemedText>
+                    </View>
+                    <View style={styles.endpointRight}>
+                      <ThemedText
+                        type="default"
+                        numberOfLines={2}
+                        style={[
+                          styles.endpointText,
+                          isActive && styles.activeTripText,
+                          { textAlign: 'right' },
+                        ]}>
+                        Destination
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
         </ThemedView>
 
         <ThemedView style={styles.middleContainer}>
@@ -39,7 +113,7 @@ export default function HomeScreen() {
             <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
               <Image
                 source={require('@/assets/images/quick-icon-1.png')} 
-                style={{ width: 58, height: 58, marginBottom: 4 }}
+                style={styles.optionImage}
                 resizeMode="contain"
               />
               <ThemedText type="option" style={{ textAlign: 'center' }}>Set{'\n'}Trip Alarm</ThemedText>
@@ -48,7 +122,7 @@ export default function HomeScreen() {
             <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
               <Image
                 source={require('@/assets/images/quick-icon-2.png')} 
-                style={{ width: 58, height: 58, marginBottom: 4 }}
+                style={styles.optionImage}
                 resizeMode="contain"
               />
               <ThemedText type="option" style={{ textAlign: 'center' }}>Go to{'\n'}Current Trip</ThemedText>
@@ -57,7 +131,7 @@ export default function HomeScreen() {
             <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
               <Image
                 source={require('@/assets/images/quick-icon-3.png')} 
-                style={{ width: 58, height: 58, marginBottom: 4 }}
+                style={styles.optionImage}
                 resizeMode="contain"
               />
               <ThemedText type="option" style={{ textAlign: 'center' }}>View{'\n'}Trip History</ThemedText>
@@ -66,24 +140,39 @@ export default function HomeScreen() {
           </ThemedView>
         </ThemedView>
 
-        <ThemedView style={styles.stepContainer}>
+        <ThemedView style={styles.bottomContainer}>
           <ThemedText type="titleSmall">Recent Trips</ThemedText>
+                    {[1, 2, 3].map((_, i) => (
+                      <View key={i} style={styles.tripContainer}>
+                        <View style={styles.trip}>
+                          <ThemedText type="defaultSemiBold">Starting point</ThemedText>
+                          <ThemedText type="default"> to </ThemedText>
+                          <ThemedText type="defaultSemiBold">Destination</ThemedText>
+                        </View>
+                        <ThemedText type="option">00/00/0000</ThemedText>
+                      </View>
+                    ))}
         </ThemedView>
     </ParallaxScrollView>
-
-      </ImageBackground>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    padding: 32,
+    padding: 0,
   },
   topContainer: {
     justifyContent: 'space-between',
     flexDirection: 'row',
     gap: 8,
+    paddingLeft: 32,
+    paddingRight: 32,
+    paddingTop: 32,
+  },
+  headerContainer: {
+    flexDirection: 'column',
   },
   welcomeContainer: {
     alignSelf: 'flex-start',
@@ -92,14 +181,85 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  currentContainer: {
+    paddingLeft: 32,
+    paddingRight: 32,
+    gap: 8,
+  },
+
+  tripScroll: {
+    marginHorizontal: -32, // negate the background padding (match padding: 32 in ImageBackground)
+  },
+
+  tripScrollContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+    paddingLeft: 40,
+    paddingRight: 32,
+  },
+  activeTripCard: {
+    backgroundColor: '#145E4D',
+    color: 'white',
+  },
+  activeTripText: {
+    color: 'white',
+  },
+  justifyContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginVertical: 4,
+  },
+  endpointLeft: {
+    maxWidth: '48%',
+    minHeight: 36, // ≈ 2 lines of text height
+    justifyContent: 'flex-start',
+  },
+
+  endpointRight: {
+    maxWidth: '48%',
+    minHeight: 36,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+  },
+
+  endpointText: {
+    flexWrap: 'wrap',
+    lineHeight: 18,
+  },
+  progressBarWrapper: {
+  marginVertical: 8,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 20,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 20,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#A69DDA',
+    borderRadius: 20,
+  },
+  tripCard: {
+    backgroundColor: '#B6C6C3',
+    padding: 16,
+    borderRadius: 16,
+    width: 270,
+    marginRight: 12,
+  },
   middleContainer: {
     flexDirection: 'column',
+    paddingLeft: 32,
+    paddingRight: 32,
   },
   optionsContainer: {
      flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 27,
+    marginLeft: 9,
+    marginRight: 9,
     gap: 5,
     
   },
@@ -110,14 +270,36 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 12,
     width: 80, 
-    elevation: 10,
+    elevation: 8,
   },
-
-  headerContainer: {
-    flexDirection: 'column',
+  optionImage: {
+    width: 58,
+    height: 58,
+    marginBottom: -25, // pulls image into overlap
+    top:-29,
+    zIndex: 1,
   },
-  stepContainer: {
+  bottomContainer: {
+    flex: 1,
     gap: 8,
     marginBottom: 16,
+    backgroundColor: '#ADCE7D',
+    padding: 20,
+    borderRadius: 20,
+    marginLeft: 32,
+    marginRight: 32,
+    
+  },
+  tripContainer: {
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'white',
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+  },
+  trip: {
+    width: 160,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
 });
