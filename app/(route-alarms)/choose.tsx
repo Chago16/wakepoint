@@ -1,17 +1,29 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
-
+import { Stack } from 'expo-router';
+import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
-export default function chooseScreen() {
+export default function ChooseScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: 'History' }} />
-      <ThemedView style={styles.container}>
-        <ThemedText type="title">This screen is choose.tsx.</ThemedText>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          animation: 'none',
+        }}
+      />
+      <View style={styles.container}>
+        <ThemedText type="titleLarge">
+          WakePoint
+        </ThemedText>
 
-      </ThemedView>
+        <TouchableOpacity style={styles.button}>
+          <Text style={styles.buttonText}>Use a Saved Alarm</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.button}>
+          <Text style={styles.buttonText}>Create New</Text>
+        </TouchableOpacity>
+      </View>
     </>
   );
 }
@@ -19,12 +31,21 @@ export default function chooseScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#145E4D',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
-  link: {
-    marginTop: 15,
+  button: {
+    backgroundColor: '#CFC8F3',
     paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    marginVertical: 10,
+  },
+  buttonText: {
+    fontSize: 18,
+    color: '#145E4D',
+    fontWeight: '600',
   },
 });
