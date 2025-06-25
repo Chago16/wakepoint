@@ -5,7 +5,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle1' | 'subtitle2' |'link';
 };
 
 export function ThemedText({
@@ -24,7 +24,8 @@ export function ThemedText({
         type === 'default' ? styles.default : undefined,
         type === 'title' ? styles.title : undefined,
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
+        type === 'subtitle1' ? styles.subtitle1 : undefined,
+        type === 'subtitle2' ? styles.subtitle2 : undefined,
         type === 'link' ? styles.link : undefined,
         style,
       ]}
@@ -36,22 +37,26 @@ export function ThemedText({
 const styles = StyleSheet.create({
   default: {
     fontFamily: 'Quicksand',
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 18,
   },
   defaultSemiBold: {
     fontFamily: 'QuicksandBold',
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 18,
   },
   title: {
     fontFamily: 'FredokaOne',
     fontSize: 32,
     lineHeight: 32,
   },
-  subtitle: {
+  subtitle1: {
+    fontFamily: 'Quicksand',
+    fontSize: 25,
+  },
+  subtitle2: {
     fontFamily: 'QuicksandBold',
-    fontSize: 20,
+    fontSize: 25,
   },
   link: {
     fontFamily: 'Quicksand',
