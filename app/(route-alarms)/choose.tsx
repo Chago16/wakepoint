@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 
 export default function ChooseScreen() {
@@ -13,16 +13,22 @@ export default function ChooseScreen() {
       />
       <View style={styles.container}>
         <View style={styles.container2}>
-        <ThemedText type="titleLarge" style={{ color: '#CFC8F3' }}>
-          WakePoint
-        </ThemedText>
+          <ThemedText type="titleLarge" style={{ color: '#CFC8F3' }}>
+            WakePoint
+          </ThemedText>
         </View>
-        <TouchableOpacity style={styles.button}>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/saved-routes')}
+        >
           <ThemedText type="button">Use a Saved Alarm</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.button2}>
-          <ThemedText type="button" style={{ color: '#ffffff' }}>Create New</ThemedText>
+          <ThemedText type="button" style={{ color: '#ffffff' }}>
+            Create New
+          </ThemedText>
         </TouchableOpacity>
       </View>
     </>

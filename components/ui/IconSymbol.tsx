@@ -21,7 +21,8 @@ const MAPPING = {
   'doc.text': 'description',
   'plus': 'add',
   'rectangle.portrait.and.arrow.right': 'logout',
-} as IconMapping;
+  'arrow.left.circle': 'arrow-back-ios-new',
+} as unknown as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
