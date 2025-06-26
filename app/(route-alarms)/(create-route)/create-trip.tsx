@@ -3,14 +3,24 @@ import Mapbox, { Camera } from '@rnmapbox/maps';
 import { WINDOW_HEIGHT } from '@utils/index';
 import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, AppState, PanResponder, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  AppState,
+  PanResponder,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.65;
-const MID_HEIGHT = WINDOW_HEIGHT * 0.4; // 🟡 updated from 0.35 to 0.4
+const MID_HEIGHT = WINDOW_HEIGHT * 0.4;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT - 0.9, 0];
 
@@ -80,7 +90,6 @@ const MapScreen = () => {
       }
       appState.current = nextAppState;
     });
-
     return () => subscription.remove();
   }, []);
 
@@ -97,82 +106,85 @@ const MapScreen = () => {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Mapbox.MapView
-        style={styles.map}
-        styleURL={Mapbox.StyleURL.Street}
-        logoEnabled={false}
-        compassEnabled={true}
-        scaleBarEnabled={true}
-        onDidFinishLoadingMap={() => setMapReady(true)}
-      >
-        <Camera centerCoordinate={centerCoordinate} zoomLevel={14} animationMode="flyTo" animationDuration={1000} />
-        {mapReady && locationGranted && <Mapbox.UserLocation visible={true} />}
-      </Mapbox.MapView>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <Mapbox.MapView
+          style={styles.map}
+          styleURL={Mapbox.StyleURL.Street}
+          logoEnabled={false}
+          compassEnabled={true}
+          scaleBarEnabled={true}
+          onDidFinishLoadingMap={() => setMapReady(true)}
+        >
+          <Camera centerCoordinate={centerCoordinate} zoomLevel={14} animationMode="flyTo" animationDuration={1000} />
+          {mapReady && locationGranted && <Mapbox.UserLocation visible={true} />}
+        </Mapbox.MapView>
 
-      <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
-        <View style={styles.draggableArea} {...panResponder.panHandlers}>
-          <View style={styles.dragHandle} />
+        <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
+          <View style={styles.draggableArea} {...panResponder.panHandlers}>
+            <View style={styles.dragHandle} />
+          </View>
+
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
+            <ThemedText type="titleSmall">Create Trip Alarm</ThemedText>
+            <ThemedText type="default" style={{ marginBottom: 25 }}>We will wake you up. Don’t worry!</ThemedText>
+
+            <View style={styles.checkpoint}>
+              <View style={styles.checkIconCircle} />
+              <View style={styles.checkpointTextBox}><ThemedText type="defaultSemiBold">Destination</ThemedText></View>
+            </View>
+
+            <View style={styles.checkpoint}>
+              <View style={styles.finalPin} />
+              <View style={styles.checkpointTextBox}><ThemedText type="defaultSemiBold">From</ThemedText></View>
+            </View>
+
+            <View style={styles.separator} />
+
+            <ThemedText type="titleSmall" style={{ marginTop: 12, marginBottom: 12 }}>Alarm Settings</ThemedText>
+
+            <View style={[styles.settingRow, { marginBottom: 8 }]}> 
+              <View>
+                <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
+                <ThemedText type="default">Default tone</ThemedText>
+              </View>
+              <Switch value={soundEnabled} onValueChange={setSoundEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={soundEnabled ? '#fff' : '#d3d3d3'} />
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={[styles.settingRow, { marginTop: 8, marginBottom: 8 }]}> 
+              <View>
+                <ThemedText type="defaultSemiBold">Vibration</ThemedText>
+                <ThemedText type="default">Silent alert</ThemedText>
+              </View>
+              <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={vibrationEnabled ? '#fff' : '#d3d3d3'} />
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={[styles.settingRow, { marginTop: 8, marginBottom: -20 }]}> 
+              <View>
+                <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
+                <ThemedText type="default">300m alert</ThemedText>
+              </View>
+              <Switch value={notifyEarlierEnabled} onValueChange={setNotifyEarlierEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={notifyEarlierEnabled ? '#fff' : '#d3d3d3'} />
+            </View>
+          </ScrollView>
+        </Animated.View>
+
+        <View style={styles.separator} />
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => router.push('/(route-alarms)/choose')}>
+            <ThemedText type="button" style={{ color: '#104E3B' }}>Cancel</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.useAlarmBtn} onPress={() => router.push('/trip-checkpoints')}>
+            <ThemedText type="button" style={{ color: 'white' }}>Next</ThemedText>
+          </TouchableOpacity>
         </View>
-
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
-          <ThemedText type="titleSmall">Create Trip Alarm</ThemedText>
-          <ThemedText type="default" style={{ marginBottom: 25 }}>We will wake you up. Don’t worry!</ThemedText>
-
-          <View style={styles.checkpoint}>
-            <View style={styles.checkIconCircle} />
-            <View style={styles.checkpointTextBox}><ThemedText type="defaultSemiBold">Destination</ThemedText></View>
-          </View>
-
-          <View style={styles.checkpoint}>
-            <View style={styles.finalPin} />
-            <View style={styles.checkpointTextBox}><ThemedText type="defaultSemiBold">From</ThemedText></View>
-          </View>
-
-          <View style={styles.separator} />
-
-          <ThemedText type="titleSmall" style={{ marginTop: 12, marginBottom: 12 }}>Alarm Settings</ThemedText>
-
-          <View style={[styles.settingRow, { marginBottom: 8 }]}> 
-            <View>
-              <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
-              <ThemedText type="default">Default tone</ThemedText>
-            </View>
-            <Switch value={soundEnabled} onValueChange={setSoundEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={soundEnabled ? '#fff' : '#d3d3d3'} />
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={[styles.settingRow, { marginTop: 8, marginBottom: 8 }]}> 
-            <View>
-              <ThemedText type="defaultSemiBold">Vibration</ThemedText>
-              <ThemedText type="default">Silent alert</ThemedText>
-            </View>
-            <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={vibrationEnabled ? '#fff' : '#d3d3d3'} />
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={[styles.settingRow, { marginTop: 8, marginBottom: -20 }]}> 
-            <View>
-              <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
-              <ThemedText type="default">300m alert</ThemedText>
-            </View>
-            <Switch value={notifyEarlierEnabled} onValueChange={setNotifyEarlierEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={notifyEarlierEnabled ? '#fff' : '#d3d3d3'} />
-          </View>
-        </ScrollView>
-      </Animated.View>
-
-      <View style={styles.separator} />
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={() => router.push('/(route-alarms)/choose')}>
-          <ThemedText type="button" style={{ color: '#104E3B' }}>Cancel</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.useAlarmBtn} onPress={() => router.push('/trip-checkpoints')}>
-          <ThemedText type="button" style={{ color: 'white' }}>Next</ThemedText>
-        </TouchableOpacity>
       </View>
-    </View>
+    </>
   );
 };
 

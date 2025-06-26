@@ -3,7 +3,7 @@ import Mapbox, { Camera } from '@rnmapbox/maps';
 import { WINDOW_HEIGHT } from '@utils/index';
 import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -15,11 +15,13 @@ import {
     View,
 } from 'react-native';
 
-Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
+Mapbox.setAccessToken(
+  'pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw'
+);
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.65;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
-const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0];
+const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0]; // [down, up]
 
 const MapScreen = () => {
   const [centerCoordinate, setCenterCoordinate] = useState([120.9842, 14.5995]);
@@ -27,14 +29,9 @@ const MapScreen = () => {
   const [mapReady, setMapReady] = useState(false);
   const appState = useRef(AppState.currentState);
 
-  const [soundEnabled, setSoundEnabled] = useState(false);
-  const [vibrationEnabled, setVibrationEnabled] = useState(false);
-  const [notifyEarlierEnabled, setNotifyEarlierEnabled] = useState(false);
-
-  const [isSheetUp, setIsSheetUp] = useState(false);
-
-  const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
-  const currentPosition = useRef(0);
+  const [isSheetUp, setIsSheetUp] = useState(true); // now starts up
+  const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current; // start up
+  const currentPosition = useRef(1);
 
   useEffect(() => {
     const id = animatedValue.addListener(({ value }) => {
@@ -70,6 +67,7 @@ const MapScreen = () => {
             toValue: POSITIONS[closest],
             useNativeDriver: true,
           }).start();
+          setIsSheetUp(closest === 1);
         });
       },
     })
@@ -114,79 +112,98 @@ const MapScreen = () => {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Mapbox.MapView
-        style={styles.map}
-        styleURL={Mapbox.StyleURL.Street}
-        logoEnabled={false}
-        compassEnabled={true}
-        scaleBarEnabled={true}
-        onDidFinishLoadingMap={() => setMapReady(true)}
-      >
-        <Camera centerCoordinate={centerCoordinate} zoomLevel={14} animationMode="flyTo" animationDuration={1000} />
-        {mapReady && locationGranted && <Mapbox.UserLocation visible={true} />}
-      </Mapbox.MapView>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <Mapbox.MapView
+          style={styles.map}
+          styleURL={Mapbox.StyleURL.Street}
+          logoEnabled={false}
+          compassEnabled={true}
+          scaleBarEnabled={true}
+          onDidFinishLoadingMap={() => setMapReady(true)}
+        >
+          <Camera
+            centerCoordinate={centerCoordinate}
+            zoomLevel={14}
+            animationMode="flyTo"
+            animationDuration={1000}
+          />
+          {mapReady && locationGranted && <Mapbox.UserLocation visible={true} />}
+        </Mapbox.MapView>
 
-      <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
-        <View style={styles.draggableArea} {...panResponder.panHandlers}>
-          <View style={styles.dragHandle} />
-        </View>
-
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
-          <ThemedText type="titleSmall">Choose Trip Checkpoints</ThemedText>
-          <ThemedText type="default" style={{ marginBottom: 25 }}>
-            Select checkpoints to customize your route.
-          </ThemedText>
-
-          <View style={styles.checkpoint}>
-            <View style={styles.checkIconCircle} />
-            <View style={styles.checkpointTextBox}><ThemedText type="defaultSemiBold">Destination</ThemedText></View>
+        <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
+          <View style={styles.draggableArea} {...panResponder.panHandlers}>
+            <View style={styles.dragHandle} />
           </View>
 
-          {[1, 2, 3].map((i) => (
-            <View key={i} style={styles.checkpoint}>
-              <View style={styles.verticalLine} />
-              <View style={styles.checkpointDot} />
-              <View>
-                <ThemedText type="defaultSemiBold">{`Checkpoint - ${i} Name`}</ThemedText>
-                <ThemedText type="default">{`Address of checkpoint ${i} here`}</ThemedText>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.sheetContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <ThemedText type="titleSmall">Choose Trip Checkpoints</ThemedText>
+            <ThemedText type="default" style={{ marginBottom: 25 }}>
+              Select checkpoints to customize your route.
+            </ThemedText>
+
+            <View style={styles.checkpoint}>
+              <View style={styles.checkIconCircle} />
+              <View style={styles.checkpointTextBox}>
+                <ThemedText type="defaultSemiBold">Destination</ThemedText>
               </View>
             </View>
-          ))}
 
-          <View style={styles.checkpoint}>
-            <View style={styles.finalPin} />
-            <View style={styles.checkpointTextBox}><ThemedText type="defaultSemiBold">From</ThemedText></View>
-          </View>
-        </ScrollView>
-      </Animated.View>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={styles.checkpoint}>
+                <View style={styles.verticalLine} />
+                <View style={styles.checkpointDot} />
+                <View>
+                  <ThemedText type="defaultSemiBold">{`Checkpoint - ${i} Name`}</ThemedText>
+                  <ThemedText type="default">{`Address of checkpoint ${i} here`}</ThemedText>
+                </View>
+              </View>
+            ))}
 
-      <View style={styles.separator} />
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={() => router.push('/create-trip')}>
-          <ThemedText type="button" style={{ color: '#104E3B' }}>Back</ThemedText>
-        </TouchableOpacity>
+            <View style={styles.checkpoint}>
+              <View style={styles.finalPin} />
+              <View style={styles.checkpointTextBox}>
+                <ThemedText type="defaultSemiBold">From</ThemedText>
+              </View>
+            </View>
+          </ScrollView>
+        </Animated.View>
 
-        <TouchableOpacity
-          style={styles.useAlarmBtn}
-          onPress={() => {
-            if (!isSheetUp) {
-              router.push('/alarm-set');
-            } else {
-              currentPosition.current = 1;
-              Animated.spring(animatedValue, {
-                toValue: POSITIONS[0],
-                useNativeDriver: true,
-              }).start();
-            }
-          }}
-        >
-          <ThemedText type="button" style={{ color: 'white' }}>
-            {!isSheetUp ? 'Create Alarm' : 'Next'}
-          </ThemedText>
-        </TouchableOpacity>
+        <View style={styles.separator} />
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => router.push('/create-trip')}>
+            <ThemedText type="button" style={{ color: '#104E3B' }}>
+              Back
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.useAlarmBtn}
+            onPress={() => {
+              if (!isSheetUp) {
+                router.push('/alarm-set');
+              } else {
+                currentPosition.current = 1;
+                Animated.spring(animatedValue, {
+                  toValue: POSITIONS[0],
+                  useNativeDriver: true,
+                }).start();
+                setIsSheetUp(true);
+              }
+            }}
+          >
+            <ThemedText type="button" style={{ color: 'white' }}>
+              {isSheetUp ? 'Next' : 'Create Alarm'}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </>
   );
 };
 
