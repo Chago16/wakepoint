@@ -1,65 +1,69 @@
 import { ThemedText } from '@/components/ThemedText';
 import Mapbox, { Camera } from '@rnmapbox/maps';
-import { WINDOW_HEIGHT } from '@utils/index'; // 👈 make sure this path is correct or define WINDOW_HEIGHT directly
+import { WINDOW_HEIGHT } from '@utils/index';
 import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
+import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, AppState, AppStateStatus, PanResponder, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, AppState, PanResponder, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
-const BOTTOM_SHEET_MAX_HEIGHT = WINDOW_HEIGHT * 0.65;
-const BOTTOM_SHEET_MIN_HEIGHT = WINDOW_HEIGHT * 0.12;
-const MAX_UPWARD_TRANSLATE_Y = BOTTOM_SHEET_MIN_HEIGHT - BOTTOM_SHEET_MAX_HEIGHT;
-const MAX_DOWNWARD_TRANSLATE_Y = 0;
-const DRAG_THRESHOLD = 50;
+const MAX_HEIGHT = WINDOW_HEIGHT * 0.65;
+const MID_HEIGHT = WINDOW_HEIGHT * 0.4; // 🟡 updated from 0.35 to 0.4
+const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
+const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT - 0.9, 0];
 
 const MapScreen = () => {
-  const [sheetHeight, setSheetHeight] = useState(BOTTOM_SHEET_MAX_HEIGHT);  
-  const [centerCoordinate, setCenterCoordinate] = useState([120.9842, 14.5995]); // Manila
+  const [centerCoordinate, setCenterCoordinate] = useState([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
-  const appState = useRef<AppStateStatus>(AppState.currentState);
+  const appState = useRef(AppState.currentState);
 
-  const animatedValue = useRef(new Animated.Value(0)).current;
-  const lastGestureDy = useRef(0);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [vibrationEnabled, setVibrationEnabled] = useState(false);
+  const [notifyEarlierEnabled, setNotifyEarlierEnabled] = useState(false);
+
+  const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
+  const currentPosition = useRef(1);
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        animatedValue.setOffset(lastGestureDy.current);
+        animatedValue.extractOffset();
       },
-      onPanResponderMove: (e, gesture) => {
+      onPanResponderMove: (_, gesture) => {
         animatedValue.setValue(gesture.dy);
       },
-      onPanResponderRelease: (e, gesture) => {
+      onPanResponderRelease: () => {
         animatedValue.flattenOffset();
-        lastGestureDy.current += gesture.dy;
-
-        if (gesture.dy > 0) {
-          gesture.dy <= DRAG_THRESHOLD ? springAnimation('up') : springAnimation('down');
-        } else {
-          gesture.dy >= -DRAG_THRESHOLD ? springAnimation('down') : springAnimation('up');
-        }
+        animatedValue.stopAnimation((newY) => {
+          let closest = 0;
+          let minDist = Infinity;
+          POSITIONS.forEach((pos, idx) => {
+            const dist = Math.abs(newY - pos);
+            if (dist < minDist) {
+              minDist = dist;
+              closest = idx;
+            }
+          });
+          currentPosition.current = closest;
+          Animated.spring(animatedValue, {
+            toValue: POSITIONS[closest],
+            useNativeDriver: true,
+          }).start();
+        });
       },
     })
   ).current;
-
-  const springAnimation = (direction: 'up' | 'down') => {
-    lastGestureDy.current = direction === 'down' ? MAX_DOWNWARD_TRANSLATE_Y : MAX_UPWARD_TRANSLATE_Y;
-    Animated.spring(animatedValue, {
-      toValue: lastGestureDy.current,
-      useNativeDriver: true,
-    }).start();
-  };
 
   const bottomSheetStyle = {
     transform: [
       {
         translateY: animatedValue.interpolate({
-          inputRange: [MAX_UPWARD_TRANSLATE_Y, MAX_DOWNWARD_TRANSLATE_Y],
-          outputRange: [MAX_UPWARD_TRANSLATE_Y, MAX_DOWNWARD_TRANSLATE_Y],
+          inputRange: [POSITIONS[0], POSITIONS[2]],
+          outputRange: [POSITIONS[0], POSITIONS[2]],
           extrapolate: 'clamp',
         }),
       },
@@ -68,10 +72,7 @@ const MapScreen = () => {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === 'active'
-      ) {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
         const fg = await Location.getForegroundPermissionsAsync();
         const bg = await Location.getBackgroundPermissionsAsync();
         const granted = fg.status === 'granted' && bg.status === 'granted';
@@ -105,101 +106,72 @@ const MapScreen = () => {
         scaleBarEnabled={true}
         onDidFinishLoadingMap={() => setMapReady(true)}
       >
-        <Camera
-          centerCoordinate={centerCoordinate}
-          zoomLevel={14}
-          animationMode="flyTo"
-          animationDuration={1000}
-        />
-        {mapReady && locationGranted && (
-          <Mapbox.UserLocation visible={true} />
-        )}
+        <Camera centerCoordinate={centerCoordinate} zoomLevel={14} animationMode="flyTo" animationDuration={1000} />
+        {mapReady && locationGranted && <Mapbox.UserLocation visible={true} />}
       </Mapbox.MapView>
 
-      {/* 🔽 Draggable Bottom Sheet */}
       <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
         <View style={styles.draggableArea} {...panResponder.panHandlers}>
           <View style={styles.dragHandle} />
         </View>
 
-        {/* Scrollable content */}
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[styles.sheetContent, { padding: 20, marginHorizontal: 20, }]}
-          showsVerticalScrollIndicator={false}
-        >
-          <ThemedText type="titleSmall" style={{ marginBottom: 0 }}>
-            Create Trip Alarm
-          </ThemedText>
-          <ThemedText type="default" style={{ marginBottom: 25 }}>
-            We will wake you up. Don’t worry!
-          </ThemedText>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
+          <ThemedText type="titleSmall">Create Trip Alarm</ThemedText>
+          <ThemedText type="default" style={{ marginBottom: 25 }}>We will wake you up. Don’t worry!</ThemedText>
 
-          {/* Checkpoint 0 */}
           <View style={styles.checkpoint}>
             <View style={styles.checkIconCircle} />
-            <View style={styles.checkpointTextBox}>
-              <ThemedText type="defaultSemiBold">Destination</ThemedText>
-            </View>
+            <View style={styles.checkpointTextBox}><ThemedText type="defaultSemiBold">Destination</ThemedText></View>
           </View>
 
-          {/* Final Destination */}
           <View style={styles.checkpoint}>
             <View style={styles.finalPin} />
-            <View style={styles.checkpointTextBox}>
-              <ThemedText type="defaultSemiBold">From</ThemedText>
-            </View>
+            <View style={styles.checkpointTextBox}><ThemedText type="defaultSemiBold">From</ThemedText></View>
           </View>
 
           <View style={styles.separator} />
 
-          <ThemedText type="titleSmall" style={{ marginTop: 12, marginBottom: 12 }}>
-            Alarm Settings
-          </ThemedText>
+          <ThemedText type="titleSmall" style={{ marginTop: 12, marginBottom: 12 }}>Alarm Settings</ThemedText>
 
-          {/* Alarm Sound */}
-          <View style={[styles.settingRow, { marginBottom: 16 }]}>
+          <View style={[styles.settingRow, { marginBottom: 8 }]}> 
             <View>
               <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
-              <ThemedText type="default">Wakiki ft. Tierra | Essence</ThemedText>
+              <ThemedText type="default">Default tone</ThemedText>
             </View>
-            <View style={styles.togglePlaceholder} />
+            <Switch value={soundEnabled} onValueChange={setSoundEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={soundEnabled ? '#fff' : '#d3d3d3'} />
           </View>
 
-          {/* Vibration */}
-          <View style={[styles.settingRow, { marginBottom: 16 }]}>
+          <View style={styles.separator} />
+
+          <View style={[styles.settingRow, { marginTop: 8, marginBottom: 8 }]}> 
             <View>
               <ThemedText type="defaultSemiBold">Vibration</ThemedText>
-              <ThemedText type="default">None</ThemedText>
+              <ThemedText type="default">Silent alert</ThemedText>
             </View>
-            <View style={styles.togglePlaceholder} />
+            <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={vibrationEnabled ? '#fff' : '#d3d3d3'} />
           </View>
 
-          {/* Notify earlier */}
-          <View style={[styles.settingRow, { marginBottom: -20 }]}>
+          <View style={styles.separator} />
+
+          <View style={[styles.settingRow, { marginTop: 8, marginBottom: -20 }]}> 
             <View>
               <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
-              <ThemedText type="default">None</ThemedText>
+              <ThemedText type="default">300m alert</ThemedText>
             </View>
-            <View style={styles.togglePlaceholder} />
+            <Switch value={notifyEarlierEnabled} onValueChange={setNotifyEarlierEnabled} trackColor={{ false: '#E0E0E0', true: '#104E3B' }} thumbColor={notifyEarlierEnabled ? '#fff' : '#d3d3d3'} />
           </View>
         </ScrollView>
-
-        {/* Sticky Buttons */}
-        <View style={styles.separator} />
-        <View style={styles.buttonRow}>
-          <View style={styles.useAlarmBtn}>
-            <ThemedText type="button" style={{ color: 'white' }}>
-              Next
-            </ThemedText>
-          </View>
-          <View style={styles.cancelBtn}>
-            <ThemedText type="button" style={{ color: '#104E3B' }}>
-              Cancel
-            </ThemedText>
-          </View>
-        </View>
       </Animated.View>
+
+      <View style={styles.separator} />
+      <View style={styles.buttonRow}>
+        <TouchableOpacity style={styles.cancelBtn} onPress={() => router.push('/(route-alarms)/choose')}>
+          <ThemedText type="button" style={{ color: '#104E3B' }}>Cancel</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.useAlarmBtn} onPress={() => router.push('/trip-checkpoints')}>
+          <ThemedText type="button" style={{ color: 'white' }}>Next</ThemedText>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -207,97 +179,73 @@ const MapScreen = () => {
 export default MapScreen;
 
 const styles = StyleSheet.create({
-sheetContent: {
+  sheetContent: {
     paddingHorizontal: 20,
     paddingTop: 0,
     paddingBottom: 40,
-    },
-checkpoint: {
+  },
+  checkpoint: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
-    },
-checkIconCircle: {
+  },
+  checkIconCircle: {
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: '#8CC63F',
     marginTop: 8,
     marginRight: 12,
-    },
-verticalLine: {
-    width: 2,
-    height: '100%',
-    backgroundColor: '#8CC63F',
-    marginRight: 20,
-    marginLeft: 7,
-    position: 'absolute',
-    top: 16,
-    left: 7,
-    zIndex: -1,
-    },
-checkpointDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#2C7865',
-    marginRight: 12,
-    marginTop: 4,
-    },
-finalPin: {
+  },
+  finalPin: {
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: '#104E3B',
     marginTop: 8,
     marginRight: 12,
-    },
-checkpointTextBox: {
+  },
+  checkpointTextBox: {
     backgroundColor: '#F0F0F0',
     padding: 10,
     borderRadius: 6,
     flex: 1,
-    },
-separator: {
+  },
+  separator: {
     height: 1,
     backgroundColor: '#D3D3D3',
     marginVertical: 0,
-    },
-settingRow: {
+  },
+  settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    },
-togglePlaceholder: {
-    width: 45,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E0E0E0',
-    },
-    buttonRow: {
+  },
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
-    marginBottom: 20,
-    marginHorizontal: 40,
-    },
-    useAlarmBtn: {
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 40,
+    backgroundColor: 'white',
+  },
+  useAlarmBtn: {
     flex: 1,
     backgroundColor: '#104E3B',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
-    marginRight: 8,
-    },
-    cancelBtn: {
+    marginLeft: 8,
+  },
+  cancelBtn: {
     flex: 1,
     borderWidth: 2,
     borderColor: '#104E3B',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
-    marginLeft: 8,
-    },
+    marginRight: 8,
+  },
   container: {
     flex: 1,
   },
@@ -307,8 +255,8 @@ togglePlaceholder: {
   bottomSheet: {
     position: 'absolute',
     width: '100%',
-    height: BOTTOM_SHEET_MAX_HEIGHT,
-    bottom: BOTTOM_SHEET_MIN_HEIGHT - BOTTOM_SHEET_MAX_HEIGHT,
+    height: MAX_HEIGHT,
+    bottom: MIN_HEIGHT - MAX_HEIGHT,
     backgroundColor: 'white',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
