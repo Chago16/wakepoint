@@ -27,6 +27,7 @@ const MapScreen = () => {
   const [centerCoordinate, setCenterCoordinate] = useState([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
   const animatedHeight = useRef(new Animated.Value(BOTTOM_SHEET_MIN_HEIGHT)).current;
@@ -196,9 +197,7 @@ const MapScreen = () => {
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={styles.useAlarmBtn}
-                  onPress={() => {
-                    // Placeholder for future alarm logic
-                  }}
+                  onPress={() => setShowModal(true)}
                 >
                   <ThemedText type="button" style={{ color: 'white' }}>
                     Use Alarm
@@ -219,6 +218,36 @@ const MapScreen = () => {
             </View>
           </ScrollView>
         </Animated.View>
+
+        {/* MODAL OVERLAY */}
+        {showModal && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <ThemedText type="title" style={{ fontSize: 20, textAlign: 'center' }}>
+                Start Trip?
+              </ThemedText>
+              <ThemedText type="default" style={{ marginTop: 8, marginBottom: 24, textAlign: 'center' }}>
+                Route edits won’t be allowed after this.
+              </ThemedText>
+
+              <View style={styles.modalButtonRow}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.modalCancel}>
+                  <ThemedText type="button" style={{ color: '#104E3B' }}>Cancel</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                onPress={() => {
+                  setShowModal(false);
+                  router.push('/gps-window/main-gps');
+                }}
+                style={styles.modalConfirm}
+              >
+                <ThemedText type="button" style={{ color: 'white' }}>Confirm</ThemedText>
+              </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     </>
   );
@@ -227,12 +256,8 @@ const MapScreen = () => {
 export default MapScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  map: { flex: 1 },
   statusBarOverlay: {
     position: 'absolute',
     top: 0,
@@ -360,6 +385,47 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#104E3B',
     paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  modalBox: {
+    width: '85%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  modalButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  modalCancel: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#104E3B',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  modalConfirm: {
+    flex: 1,
+    backgroundColor: '#104E3B',
+    paddingVertical: 10,
     borderRadius: 12,
     alignItems: 'center',
     marginLeft: 8,
