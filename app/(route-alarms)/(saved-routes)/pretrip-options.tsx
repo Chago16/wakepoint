@@ -1,77 +1,83 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, AppState, AppStateStatus, Platform, Animated, PanResponder } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  AppState,
+  AppStateStatus,
+  Platform,
+  Animated,
+  PanResponder,
+  ScrollView,
+} from 'react-native';
 import Mapbox, { Camera } from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { requestLocationPermissions } from '@utils/permissions';
-import { WINDOW_HEIGHT } from '@utils/index'; // 👈 make sure this path is correct or define WINDOW_HEIGHT directly
+import { WINDOW_HEIGHT } from '@utils/index';
 import { ThemedText } from '@/components/ThemedText';
+import { Stack } from 'expo-router';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
-const BOTTOM_SHEET_MAX_HEIGHT = WINDOW_HEIGHT * 0.9;
 const BOTTOM_SHEET_MIN_HEIGHT = WINDOW_HEIGHT * 0.1;
-const MAX_UPWARD_TRANSLATE_Y = BOTTOM_SHEET_MIN_HEIGHT - BOTTOM_SHEET_MAX_HEIGHT;
-const MAX_DOWNWARD_TRANSLATE_Y = 0;
+const MAX_BOTTOM_SHEET_HEIGHT = WINDOW_HEIGHT * 0.85;
 const DRAG_THRESHOLD = 50;
 
 const MapScreen = () => {
-  const [sheetHeight, setSheetHeight] = useState(BOTTOM_SHEET_MAX_HEIGHT);  
-  const [centerCoordinate, setCenterCoordinate] = useState([120.9842, 14.5995]); // Manila
+  const [centerCoordinate, setCenterCoordinate] = useState([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
-  const animatedValue = useRef(new Animated.Value(0)).current;
-  const lastGestureDy = useRef(0);
+  const animatedHeight = useRef(new Animated.Value(BOTTOM_SHEET_MIN_HEIGHT)).current;
+  const currentHeight = useRef(BOTTOM_SHEET_MIN_HEIGHT);
+
+  useEffect(() => {
+    const id = animatedHeight.addListener(({ value }) => {
+      currentHeight.current = value;
+    });
+    return () => animatedHeight.removeListener(id);
+  }, []);
+
+  const expandSheet = () => {
+    Animated.spring(animatedHeight, {
+      toValue: MAX_BOTTOM_SHEET_HEIGHT,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const collapseSheet = () => {
+    Animated.spring(animatedHeight, {
+      toValue: BOTTOM_SHEET_MIN_HEIGHT,
+      useNativeDriver: false,
+    }).start();
+  };
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        animatedValue.setOffset(lastGestureDy.current);
-      },
+      onMoveShouldSetPanResponder: (e, gesture) => Math.abs(gesture.dy) > 10,
       onPanResponderMove: (e, gesture) => {
-        animatedValue.setValue(gesture.dy);
+        const newHeight = currentHeight.current - gesture.dy;
+        if (newHeight >= BOTTOM_SHEET_MIN_HEIGHT && newHeight <= MAX_BOTTOM_SHEET_HEIGHT) {
+          animatedHeight.setValue(newHeight);
+        }
       },
       onPanResponderRelease: (e, gesture) => {
-        animatedValue.flattenOffset();
-        lastGestureDy.current += gesture.dy;
-
-        if (gesture.dy > 0) {
-          gesture.dy <= DRAG_THRESHOLD ? springAnimation('up') : springAnimation('down');
+        if (gesture.dy < -DRAG_THRESHOLD) {
+          expandSheet();
+        } else if (gesture.dy > DRAG_THRESHOLD) {
+          collapseSheet();
         } else {
-          gesture.dy >= -DRAG_THRESHOLD ? springAnimation('down') : springAnimation('up');
+          currentHeight.current > (BOTTOM_SHEET_MIN_HEIGHT + MAX_BOTTOM_SHEET_HEIGHT) / 2
+            ? expandSheet()
+            : collapseSheet();
         }
       },
     })
   ).current;
 
-  const springAnimation = (direction: 'up' | 'down') => {
-    lastGestureDy.current = direction === 'down' ? MAX_DOWNWARD_TRANSLATE_Y : MAX_UPWARD_TRANSLATE_Y;
-    Animated.spring(animatedValue, {
-      toValue: lastGestureDy.current,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const bottomSheetStyle = {
-    transform: [
-      {
-        translateY: animatedValue.interpolate({
-          inputRange: [MAX_UPWARD_TRANSLATE_Y, MAX_DOWNWARD_TRANSLATE_Y],
-          outputRange: [MAX_UPWARD_TRANSLATE_Y, MAX_DOWNWARD_TRANSLATE_Y],
-          extrapolate: 'clamp',
-        }),
-      },
-    ],
-  };
-
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === 'active'
-      ) {
+      if (appState.current?.match(/inactive|background/) && nextAppState === 'active') {
         const fg = await Location.getForegroundPermissionsAsync();
         const bg = await Location.getBackgroundPermissionsAsync();
         const granted = fg.status === 'granted' && bg.status === 'granted';
@@ -96,166 +102,135 @@ const MapScreen = () => {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Mapbox.MapView
-        style={styles.map}
-        styleURL={Mapbox.StyleURL.Street}
-        logoEnabled={false}
-        compassEnabled={true}
-        scaleBarEnabled={true}
-        onDidFinishLoadingMap={() => setMapReady(true)}
-      >
-        <Camera
-          centerCoordinate={centerCoordinate}
-          zoomLevel={14}
-          animationMode="flyTo"
-          animationDuration={1000}
-        />
-        {mapReady && locationGranted && (
-          <Mapbox.UserLocation visible={true} />
-        )}
-      </Mapbox.MapView>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <Mapbox.MapView
+          style={styles.map}
+          styleURL={Mapbox.StyleURL.Street}
+          logoEnabled={false}
+          compassEnabled={true}
+          scaleBarEnabled={true}
+          onDidFinishLoadingMap={() => setMapReady(true)}
+        >
+          <Camera
+            centerCoordinate={centerCoordinate}
+            zoomLevel={14}
+            animationMode="flyTo"
+            animationDuration={1000}
+          />
+          {mapReady && locationGranted && <Mapbox.UserLocation visible={true} />}
+        </Mapbox.MapView>
 
-      {/* 🔽 Draggable Bottom Sheet */}
-      <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
-        <View style={styles.draggableArea} {...panResponder.panHandlers}>
-          <View style={styles.dragHandle} />
-        </View>
-        {/* 💬 Add your bottom sheet content here */}
-        <View style={{ padding: 20 }}>
-                <View style={styles.sheetContent}>
-        <ThemedText type="titleSmall" style={{ marginBottom: 4 }}>
-            Saved Route
-        </ThemedText>
-        <ThemedText type="default" style={{ marginBottom: 16 }}>
-            Select checkpoints to customize your route.
-        </ThemedText>
+        <Animated.View style={[styles.bottomSheet, { height: animatedHeight }]}>
+          <View style={styles.draggableArea} {...panResponder.panHandlers}>
+            <View style={styles.dragHandle} />
+          </View>
 
-        {/* Checkpoint 0 */}
-        <View style={styles.checkpoint}>
-            <View style={styles.checkIconCircle} />
-            <View style={styles.checkpointTextBox}>
-            <ThemedText type="defaultSemiBold">
-                Sonoma Residences, Sta. Cruz, Sta. Maria, Bulacan
-            </ThemedText>
+          <ScrollView
+            style={{ paddingHorizontal: 20 }}
+            contentContainerStyle={{ paddingTop: 10, paddingBottom: 40 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.sheetContent}>
+              <ThemedText type="titleSmall" style={{ marginBottom: 4 }}>
+                Saved Route
+              </ThemedText>
+              <ThemedText type="default" style={{ marginBottom: 16 }}>
+                Select checkpoints to customize your route.
+              </ThemedText>
+
+              <View style={styles.checkpoint}>
+                <View style={styles.checkIconCircle} />
+                <View style={styles.checkpointTextBox}>
+                  <ThemedText type="defaultSemiBold">
+                    Sonoma Residences, Sta. Cruz, Sta. Maria, Bulacan
+                  </ThemedText>
+                </View>
+              </View>
+
+              {[1, 2, 3].map((i) => (
+                <View key={i} style={styles.checkpoint}>
+                  <View style={styles.verticalLine} />
+                  <View style={styles.checkpointDot} />
+                  <View>
+                    <ThemedText type="defaultSemiBold">{`Checkpoint - ${i} Name`}</ThemedText>
+                    <ThemedText type="default">{`Address of checkpoint ${i} here`}</ThemedText>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.checkpoint}>
+                <View style={styles.finalPin} />
+                <View style={styles.checkpointTextBox}>
+                  <ThemedText type="defaultSemiBold">
+                    Anonas Street, Sta. Mesa, Manila
+                  </ThemedText>
+                </View>
+              </View>
+
+              <View style={styles.separator} />
+
+              <ThemedText type="titleSmall" style={{ marginBottom: 12 }}>
+                Alarm Settings
+              </ThemedText>
+
+              {[
+                { label: 'Alarm sound', value: 'Wakiki ft. Tierra | Essence' },
+                { label: 'Vibration', value: 'None' },
+                { label: 'Notify me earlier', value: 'None' },
+              ].map((item, idx) => (
+                <View style={styles.settingRow} key={idx}>
+                  <View>
+                    <ThemedText type="defaultSemiBold">{item.label}</ThemedText>
+                    <ThemedText type="default">{item.value}</ThemedText>
+                  </View>
+                  <View style={styles.togglePlaceholder} />
+                </View>
+              ))}
+
+              <View style={styles.buttonRow}>
+                <View style={styles.useAlarmBtn}>
+                  <ThemedText type="button" style={{ color: 'white' }}>
+                    Use Alarm
+                  </ThemedText>
+                </View>
+                <View style={styles.cancelBtn}>
+                  <ThemedText type="button" style={{ color: '#104E3B' }}>
+                    Cancel
+                  </ThemedText>
+                </View>
+              </View>
             </View>
-        </View>
-
-        {/* Checkpoint 1 */}
-        <View style={styles.checkpoint}>
-            <View style={styles.verticalLine} />
-            <View style={styles.checkpointDot} />
-            <View>
-            <ThemedText type="defaultSemiBold">Checkpoint - 1 Name</ThemedText>
-            <ThemedText type="default">Address of checkpoint 1 here</ThemedText>
-            </View>
-        </View>
-
-        {/* Checkpoint 2 */}
-        <View style={styles.checkpoint}>
-            <View style={styles.verticalLine} />
-            <View style={styles.checkpointDot} />
-            <View>
-            <ThemedText type="defaultSemiBold">Checkpoint - 2 Name</ThemedText>
-            <ThemedText type="default">Address of checkpoint 2 here</ThemedText>
-            </View>
-        </View>
-
-        {/* Checkpoint 3 */}
-        <View style={styles.checkpoint}>
-            <View style={styles.verticalLine} />
-            <View style={styles.checkpointDot} />
-            <View>
-            <ThemedText type="defaultSemiBold">Checkpoint - 3 Name</ThemedText>
-            <ThemedText type="default">Address of checkpoint 3 here</ThemedText>
-            </View>
-        </View>
-
-        {/* Final Destination */}
-        <View style={styles.checkpoint}>
-            <View style={styles.finalPin} />
-            <View style={styles.checkpointTextBox}>
-            <ThemedText type="defaultSemiBold">
-                Anonas Street, Sta. Mesa, Manila
-            </ThemedText>
-            </View>
-        </View>
-
-        <View style={styles.separator} />
-
-        <ThemedText type="titleSmall" style={{ marginBottom: 12 }}>
-            Alarm Settings
-        </ThemedText>
-
-        {/* Alarm Sound */}
-        <View style={styles.settingRow}>
-            <View>
-            <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
-            <ThemedText type="default">Wakiki ft. Tierra | Essence</ThemedText>
-            </View>
-            <View style={styles.togglePlaceholder} />
-        </View>
-
-        {/* Vibration */}
-        <View style={styles.settingRow}>
-            <View>
-            <ThemedText type="defaultSemiBold">Vibration</ThemedText>
-            <ThemedText type="default">None</ThemedText>
-            </View>
-            <View style={styles.togglePlaceholder} />
-        </View>
-
-        {/* Notify earlier */}
-        <View style={styles.settingRow}>
-            <View>
-            <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
-            <ThemedText type="default">None</ThemedText>
-            </View>
-            <View style={styles.togglePlaceholder} />
-        </View>
-
-        <View style={styles.buttonRow}>
-            <View style={styles.useAlarmBtn}>
-            <ThemedText type="button" style={{ color: 'white' }}>
-                Use Alarm
-            </ThemedText>
-            </View>
-            <View style={styles.cancelBtn}>
-            <ThemedText type="button" style={{ color: '#104E3B' }}>
-                Cancel
-            </ThemedText>
-            </View>
-        </View>
-        </View>
-
-        </View>
-      </Animated.View>
-    </View>
+          </ScrollView>
+        </Animated.View>
+      </View>
+    </>
   );
 };
 
 export default MapScreen;
 
 const styles = StyleSheet.create({
-sheetContent: {
+  sheetContent: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 40,
-    },
-checkpoint: {
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  checkpoint: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
-    },
-checkIconCircle: {
+  },
+  checkIconCircle: {
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: '#8CC63F',
     marginTop: 8,
     marginRight: 12,
-    },
-verticalLine: {
+  },
+  verticalLine: {
     width: 2,
     height: '100%',
     backgroundColor: '#8CC63F',
@@ -265,60 +240,61 @@ verticalLine: {
     top: 16,
     left: 7,
     zIndex: -1,
-    },
-checkpointDot: {
+  },
+  checkpointDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: '#2C7865',
     marginRight: 12,
     marginTop: 4,
-    },
-finalPin: {
+  },
+  finalPin: {
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: '#104E3B',
     marginTop: 8,
     marginRight: 12,
-    },
-checkpointTextBox: {
+  },
+  checkpointTextBox: {
     backgroundColor: '#F0F0F0',
     padding: 10,
     borderRadius: 6,
     flex: 1,
-    },
-separator: {
+  },
+  separator: {
     height: 1,
     backgroundColor: '#D3D3D3',
     marginVertical: 16,
-    },
-settingRow: {
+  },
+  settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    },
-togglePlaceholder: {
+  },
+  togglePlaceholder: {
     width: 45,
     height: 24,
     borderRadius: 12,
     backgroundColor: '#E0E0E0',
-    },
-    buttonRow: {
+  },
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
-    },
-    useAlarmBtn: {
+    marginTop: 15,
+    marginBottom: -5,
+  },
+  useAlarmBtn: {
     flex: 1,
     backgroundColor: '#104E3B',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
     marginRight: 8,
-    },
-    cancelBtn: {
+  },
+  cancelBtn: {
     flex: 1,
     borderWidth: 2,
     borderColor: '#104E3B',
@@ -326,7 +302,7 @@ togglePlaceholder: {
     borderRadius: 12,
     alignItems: 'center',
     marginLeft: 8,
-    },
+  },
   container: {
     flex: 1,
   },
@@ -336,11 +312,11 @@ togglePlaceholder: {
   bottomSheet: {
     position: 'absolute',
     width: '100%',
-    height: BOTTOM_SHEET_MAX_HEIGHT,
-    bottom: BOTTOM_SHEET_MIN_HEIGHT - BOTTOM_SHEET_MAX_HEIGHT,
+    bottom: 0,
     backgroundColor: 'white',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
+    overflow: 'hidden',
     ...Platform.select({
       android: { elevation: 3 },
       ios: {
