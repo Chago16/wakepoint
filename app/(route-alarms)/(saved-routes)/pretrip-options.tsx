@@ -8,13 +8,14 @@ import {
   Animated,
   PanResponder,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import Mapbox, { Camera } from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { requestLocationPermissions } from '@utils/permissions';
 import { WINDOW_HEIGHT } from '@utils/index';
 import { ThemedText } from '@/components/ThemedText';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -190,16 +191,27 @@ const MapScreen = () => {
               ))}
 
               <View style={styles.buttonRow}>
-                <View style={styles.useAlarmBtn}>
+                <TouchableOpacity
+                  style={styles.useAlarmBtn}
+                  onPress={() => {
+                    // Placeholder for future alarm logic
+                  }}
+                >
                   <ThemedText type="button" style={{ color: 'white' }}>
                     Use Alarm
                   </ThemedText>
-                </View>
-                <View style={styles.cancelBtn}>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    router.back();
+                  }}
+                >
                   <ThemedText type="button" style={{ color: '#104E3B' }}>
                     Cancel
                   </ThemedText>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
           </ScrollView>
