@@ -116,21 +116,27 @@ const MapScreen = () => {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <Mapbox.MapView
-          style={styles.map}
-          styleURL={Mapbox.StyleURL.Street}
-          logoEnabled={false}
-          compassEnabled={true}
-          scaleBarEnabled={true}
-          onDidFinishLoadingMap={() => setMapReady(true)}
-        >
-          <Camera
-            centerCoordinate={centerCoordinate}
-            zoomLevel={14}
-            animationMode="flyTo"
-            animationDuration={1000}
-          />
-          {mapReady && locationGranted && <Mapbox.UserLocation visible={true} />}
-        </Mapbox.MapView>
+                  style={styles.map}
+                  styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"
+                  logoEnabled={false}
+                  compassEnabled={false}
+                  scaleBarEnabled={false}
+                  onDidFinishLoadingMap={() => setMapReady(true)}
+                >
+                  <Camera
+                    centerCoordinate={centerCoordinate}
+                    zoomLevel={14}
+                    animationMode="flyTo"
+                    animationDuration={1000}
+                  />
+        
+                  {mapReady && locationGranted && (
+                    <Mapbox.UserLocation
+                      visible={true}
+                      showsUserHeadingIndicator={true}
+                    />
+                  )}
+                </Mapbox.MapView>
 
         <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
           <View style={styles.draggableArea} {...panResponder.panHandlers}>
