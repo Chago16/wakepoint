@@ -106,12 +106,13 @@ const MapScreen = () => {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
+        <View style={styles.statusBarOverlay} />
         <Mapbox.MapView
           style={styles.map}
-          styleURL={Mapbox.StyleURL.Street}
+          styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"
           logoEnabled={false}
-          compassEnabled={true}
-          scaleBarEnabled={true}
+          compassEnabled={false}
+          scaleBarEnabled={false}
           onDidFinishLoadingMap={() => setMapReady(true)}
         >
           <Camera
@@ -120,7 +121,9 @@ const MapScreen = () => {
             animationMode="flyTo"
             animationDuration={1000}
           />
-          {mapReady && locationGranted && <Mapbox.UserLocation visible={true} />}
+          {mapReady && locationGranted && (
+            <Mapbox.UserLocation visible={true} showsUserHeadingIndicator={true} />
+          )}
         </Mapbox.MapView>
 
         <Animated.View style={[styles.bottomSheet, { height: animatedHeight }]}>
@@ -224,6 +227,52 @@ const MapScreen = () => {
 export default MapScreen;
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  map: {
+    flex: 1,
+  },
+  statusBarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    zIndex: 99,
+  },
+  bottomSheet: {
+    position: 'absolute',
+    width: '100%',
+    bottom: 0,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: 'hidden',
+    ...Platform.select({
+      android: { elevation: 3 },
+      ios: {
+        shadowColor: '#a8bed2',
+        shadowOpacity: 1,
+        shadowRadius: 6,
+        shadowOffset: { width: 2, height: 2 },
+      },
+    }),
+  },
+  draggableArea: {
+    width: 132,
+    height: 32,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dragHandle: {
+    width: 100,
+    height: 6,
+    backgroundColor: '#d3d3d3',
+    borderRadius: 10,
+  },
   sheetContent: {
     paddingHorizontal: 20,
     paddingTop: 0,
@@ -314,42 +363,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginLeft: 8,
-  },
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  bottomSheet: {
-    position: 'absolute',
-    width: '100%',
-    bottom: 0,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    overflow: 'hidden',
-    ...Platform.select({
-      android: { elevation: 3 },
-      ios: {
-        shadowColor: '#a8bed2',
-        shadowOpacity: 1,
-        shadowRadius: 6,
-        shadowOffset: { width: 2, height: 2 },
-      },
-    }),
-  },
-  draggableArea: {
-    width: 132,
-    height: 32,
-    alignSelf: 'center',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dragHandle: {
-    width: 100,
-    height: 6,
-    backgroundColor: '#d3d3d3',
-    borderRadius: 10,
   },
 });
