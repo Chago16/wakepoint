@@ -1,6 +1,6 @@
-import { Stack, router } from 'expo-router';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
+import { Stack, router } from 'expo-router';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ChooseScreen() {
   return (
@@ -25,7 +25,10 @@ export default function ChooseScreen() {
           <ThemedText type="button">Use a Saved Alarm</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button2}>
+        <TouchableOpacity 
+          style={styles.button2}
+          onPress={() => router.push('/create-trip')}
+        >
           <ThemedText type="button" style={{ color: '#ffffff' }}>
             Create New
           </ThemedText>

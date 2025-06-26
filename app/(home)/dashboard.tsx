@@ -2,6 +2,7 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Image, ImageBackground, NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -45,15 +46,19 @@ export default function HomeScreen() {
 
         <ThemedView style={styles.currentContainer}>
           <ScrollView
+            ref={scrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tripScrollContainer}
             style={styles.tripScroll}
-            snapToInterval={282} // 270 width + 12 margin
+            snapToInterval={287}
             decelerationRate="fast"
             snapToAlignment="start"
             bounces={false}
-            onMomentumScrollEnd={handleScrollEnd} 
+            onMomentumScrollEnd={handleScrollEnd}
+            onLayout={() => {
+              scrollRef.current?.scrollTo({ x: 287, animated: false }); // Scroll to active card once
+            }}
           >
             {[1, 2, 3].map((_, i) => {
               const isActive = i === 1;
@@ -141,7 +146,7 @@ export default function HomeScreen() {
           <ThemedText type="titleSmall">Quick Options</ThemedText>
           <ThemedView style={styles.optionsContainer}>
 
-            <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
+            <TouchableOpacity onPress={() => router.push('/(route-alarms)/choose')} style={styles.optionButton}>
               <Image
                 source={require('@/assets/images/quick-icon-1.png')} 
                 style={styles.optionImage}
@@ -150,7 +155,7 @@ export default function HomeScreen() {
               <ThemedText type="option" style={{ textAlign: 'center' }}>Set{'\n'}Trip Alarm</ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
+            <TouchableOpacity onPress={() => router.push('/gps-window/main-gps')} style={styles.optionButton}>
               <Image
                 source={require('@/assets/images/quick-icon-2.png')} 
                 style={styles.optionImage}
@@ -159,7 +164,7 @@ export default function HomeScreen() {
               <ThemedText type="option" style={{ textAlign: 'center' }}>Go to{'\n'}Current Trip</ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => console.log('Logout')} style={styles.optionButton}>
+            <TouchableOpacity onPress={() => router.push('/history')} style={styles.optionButton}>
               <Image
                 source={require('@/assets/images/quick-icon-3.png')} 
                 style={styles.optionImage}
@@ -178,9 +183,8 @@ export default function HomeScreen() {
                     {[1, 2, 3].map((_, i) => (
                       <View key={i} style={styles.tripContainer}>
                         <View style={styles.trip}>
-                          <ThemedText type="defaultSemiBold">Starting point</ThemedText>
-                          <ThemedText type="default"> to </ThemedText>
-                          <ThemedText type="defaultSemiBold">Destination</ThemedText>
+                          <ThemedText type="option">Starting point</ThemedText>
+                          <ThemedText type="option">to Destination</ThemedText>
                         </View>
                         <ThemedText type="option">00/00/0000</ThemedText>
                       </View>
@@ -282,12 +286,12 @@ const styles = StyleSheet.create({
   dot: {
     width: 30,
     height: 5,
-    borderRadius: 0,
+    borderRadius: 5,
     marginHorizontal: 4,
   },
   activeDot: {
     backgroundColor: '#145E4D',
-    transform: [{ scale: 1.3 }],
+    transform: [{ scale: 1 }],
   },
   inactiveDot: {
     backgroundColor: '#ccc',
@@ -351,7 +355,7 @@ const styles = StyleSheet.create({
   },
   trip: {
     width: 160,
-    flexDirection: 'row',
+    flexDirection: 'column',
     flexWrap: 'wrap',
   },
   containerSeparator: {
