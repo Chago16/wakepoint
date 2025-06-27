@@ -27,7 +27,7 @@ export default function ChooseScreen() {
 
         <TouchableOpacity 
           style={styles.button2}
-          onPress={() => router.push('/create-trip')}
+          onPress={() => router.push('/map-screen?mode=create')}
         >
           <ThemedText type="button" style={{ color: '#ffffff' }}>
             Create New
