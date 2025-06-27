@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, AppState, AppStateStatus } from 'react-native';
-import Mapbox, { Camera } from '@rnmapbox/maps';
-import * as Location from 'expo-location';
-import { requestLocationPermissions } from '@utils/permissions';
-import { Stack } from 'expo-router';
-import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
 import { ETAStatusBar } from '@/components/ui/ETAStatusBar'; // adjust path as needed
+import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
+import Mapbox, { Camera } from '@rnmapbox/maps';
+import { requestLocationPermissions } from '@utils/permissions';
+import * as Location from 'expo-location';
+import { Stack } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus, StyleSheet, View } from 'react-native';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -61,6 +61,7 @@ export default function MapScreen() {
           logoEnabled={false}
           compassEnabled={false}
           scaleBarEnabled={false}
+          attributionEnabled={false}
           onDidFinishLoadingMap={() => setMapReady(true)}
         >
           <Camera

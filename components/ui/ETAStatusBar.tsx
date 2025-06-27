@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 export function ETAStatusBar({
   timeLeft = '40 mins',
@@ -15,14 +15,14 @@ export function ETAStatusBar({
     <View style={styles.container}>
       <View style={styles.leftInfo}>
         <View style={styles.row}>
-          <IconSymbol name="clock" size={16} color="#fff" />
+          <IconSymbol name="clock" size={24} color="#fff" />
           <View style={styles.textGroup}>
             <Text style={styles.mainText}>{timeLeft}</Text>
             <Text style={styles.subText}>Time Left</Text>
           </View>
         </View>
         <View style={styles.row}>
-          <IconSymbol name="location" size={16} color="#fff" />
+          <IconSymbol name="location" size={24} color="#fff" />
           <View style={styles.textGroup}>
             <Text style={styles.mainText}>{distance}</Text>
             <Text style={styles.subText}>Away</Text>
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     backgroundColor: '#004d40',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -77,12 +77,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     alignItems: 'center',
-    minWidth: 90,
+    minWidth: 160,
+    minHeight: 80,
   },
   etaTime: {
-    fontSize: 18,
+    fontSize: 30,
     fontWeight: 'bold',
     color: '#004d40',
+    marginTop: 5,
   },
   etaLabel: {
     fontSize: 10,
