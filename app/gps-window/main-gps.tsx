@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, View, AppState, AppStateStatus } from 'react-native';
-import Mapbox, { Camera, PointAnnotation } from '@rnmapbox/maps';
+import Mapbox, { Camera } from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { requestLocationPermissions } from '@utils/permissions';
 import { Stack } from 'expo-router';
+import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
+import { ETAStatusBar } from '@/components/ui/ETAStatusBar'; // adjust path as needed
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -11,6 +13,7 @@ export default function MapScreen() {
   const [centerCoordinate, setCenterCoordinate] = useState<[number, number]>([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const [showAlarm, setShowAlarm] = useState(false);
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -74,6 +77,14 @@ export default function MapScreen() {
             />
           )}
         </Mapbox.MapView>
+
+        {/* Bottom ETA Status Bar */}
+        <ETAStatusBar />
+
+        <TripAlarmModal
+          visible={showAlarm}
+          onSwipeComplete={() => setShowAlarm(false)}
+        />
       </View>
     </>
   );
@@ -86,22 +97,13 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  customPin: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#00BFFF', // bright blue
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
   statusBarOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 40, // or use StatusBar.currentHeight if you want dynamic
+    height: 40,
     backgroundColor: 'rgba(0,0,0,0.3)',
     zIndex: 99,
   },
-
 });
