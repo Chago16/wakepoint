@@ -1,25 +1,25 @@
+import { ThemedText } from '@/components/ThemedText';
+import Mapbox, { Camera } from '@rnmapbox/maps';
+import { WINDOW_HEIGHT } from '@utils/index';
+import { requestLocationPermissions } from '@utils/permissions';
+import * as Location from 'expo-location';
+import { router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  StyleSheet,
-  View,
+  Animated,
   AppState,
   AppStateStatus,
-  Platform,
-  Animated,
   PanResponder,
+  Platform,
   ScrollView,
+  StyleSheet,
   TouchableOpacity,
+  View,
 } from 'react-native';
-import Mapbox, { Camera } from '@rnmapbox/maps';
-import * as Location from 'expo-location';
-import { requestLocationPermissions } from '@utils/permissions';
-import { WINDOW_HEIGHT } from '@utils/index';
-import { ThemedText } from '@/components/ThemedText';
-import { router, Stack } from 'expo-router';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
-const BOTTOM_SHEET_MIN_HEIGHT = WINDOW_HEIGHT * 0.1;
+const BOTTOM_SHEET_MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const MAX_BOTTOM_SHEET_HEIGHT = WINDOW_HEIGHT * 0.85;
 const DRAG_THRESHOLD = 50;
 
@@ -132,12 +132,12 @@ const MapScreen = () => {
             <View style={styles.dragHandle} />
           </View>
 
-          <ScrollView
-            style={{ paddingHorizontal: 20 }}
-            contentContainerStyle={{ paddingTop: 10, paddingBottom: 40 }}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.sheetContent}>
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.sheetContent}
+              showsVerticalScrollIndicator={false}
+            >
               <ThemedText type="titleSmall" style={{ marginBottom: 4 }}>
                 Saved Route
               </ThemedText>
@@ -181,45 +181,42 @@ const MapScreen = () => {
               </ThemedText>
 
               {[
-                { label: 'Alarm sound', value: 'Wakiki ft. Tierra | Essence' },
-                { label: 'Vibration', value: 'None' },
-                { label: 'Notify me earlier', value: 'None' },
+                { label: 'Alarm Sound', value: 'Enabled' },
+                { label: 'Vibration', value: 'Enabled' },
+                { label: 'Notify Earlier', value: 'Disabled' },
               ].map((item, idx) => (
                 <View style={styles.settingRow} key={idx}>
                   <View>
                     <ThemedText type="defaultSemiBold">{item.label}</ThemedText>
                     <ThemedText type="default">{item.value}</ThemedText>
                   </View>
-                  <View style={styles.togglePlaceholder} />
                 </View>
               ))}
+            </ScrollView>
 
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={styles.useAlarmBtn}
-                  onPress={() => setShowModal(true)}
-                >
-                  <ThemedText type="button" style={{ color: 'white' }}>
-                    Use Alarm
-                  </ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={() => {
-                    router.back();
-                  }}
-                >
-                  <ThemedText type="button" style={{ color: '#104E3B' }}>
-                    Cancel
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </ScrollView>
+            
+          </View>
         </Animated.View>
-
-        {/* MODAL OVERLAY */}
+            
+        <View style={styles.separator} />
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => router.back()}
+              >
+                <ThemedText type="button" style={{ color: '#104E3B' }}>
+                  Cancel
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.useAlarmBtn}
+                onPress={() => setShowModal(true)}
+              >
+                <ThemedText type="button" style={{ color: 'white' }}>
+                  Use Alarm
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
         {showModal && (
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
@@ -236,14 +233,14 @@ const MapScreen = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                onPress={() => {
-                  setShowModal(false);
-                  router.push('/gps-window/main-gps');
-                }}
-                style={styles.modalConfirm}
-              >
-                <ThemedText type="button" style={{ color: 'white' }}>Confirm</ThemedText>
-              </TouchableOpacity>
+                  onPress={() => {
+                    setShowModal(false);
+                    router.push('/gps-window/main-gps');
+                  }}
+                  style={styles.modalConfirm}
+                >
+                  <ThemedText type="button" style={{ color: 'white' }}>Confirm</ThemedText>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -301,7 +298,7 @@ const styles = StyleSheet.create({
   sheetContent: {
     paddingHorizontal: 20,
     paddingTop: 0,
-    paddingBottom: 0,
+    paddingBottom: 20,
   },
   checkpoint: {
     flexDirection: 'row',
@@ -352,11 +349,10 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#D3D3D3',
-    marginVertical: 16,
+    marginVertical: 0,
   },
   settingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
@@ -369,8 +365,10 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 15,
-    marginBottom: -5,
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 40,
+    backgroundColor: 'white',
   },
   useAlarmBtn: {
     flex: 1,
@@ -378,7 +376,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
-    marginRight: 8,
+    marginLeft: 8,
   },
   cancelBtn: {
     flex: 1,
@@ -387,7 +385,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
-    marginLeft: 8,
+    marginRight: 8,
   },
   modalOverlay: {
     position: 'absolute',
