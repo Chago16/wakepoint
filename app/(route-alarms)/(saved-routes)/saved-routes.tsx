@@ -1,5 +1,5 @@
 import { router, Stack } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,7 +7,10 @@ import {
   Dimensions,
   ScrollView,
   Text,
+  TouchableWithoutFeedback,
+  Animated,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
@@ -34,6 +37,12 @@ const sampleRoutes = [
 
 export default function ChooseScreen() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [isLongPressed, setIsLongPressed] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const cardAnim = useRef(new Animated.Value(0)).current;
+  const bottomSpacerAnim = useRef(new Animated.Value(0)).current;
+  const heightAnims = useRef(sampleRoutes.map(() => new Animated.Value(1))).current;
 
   const handleUseAsAlarm = () => {
     if (selectedIndex !== null) {
@@ -41,6 +50,59 @@ export default function ChooseScreen() {
       router.push('/pretrip-options');
     }
   };
+
+  const handleEdit = () => {
+    console.log('Edit:', sampleRoutes[selectedIndex!]);
+  };
+
+  const handleDelete = () => {
+    console.log('Delete:', sampleRoutes[selectedIndex!]);
+  };
+
+  const animateHideSelectedCard = (index: number) => {
+    Animated.timing(heightAnims[index], {
+      toValue: 0,
+      duration: 100,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const resetCardHeights = () => {
+    heightAnims.forEach((anim) =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: false,
+      }).start()
+    );
+  };
+
+  useEffect(() => {
+    if (isLongPressed && selectedIndex !== null) {
+      animateHideSelectedCard(selectedIndex);
+    } else {
+      resetCardHeights();
+    }
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: isLongPressed ? 1 : 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.spring(cardAnim, {
+        toValue: isLongPressed ? 1 : 0,
+        useNativeDriver: true,
+        speed: 12,
+        bounciness: 10,
+      }),
+      Animated.timing(bottomSpacerAnim, {
+        toValue: isLongPressed ? 76 : 0,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [isLongPressed]);
 
   return (
     <>
@@ -53,9 +115,7 @@ export default function ChooseScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backCircle}>
                   <IconSymbol name="arrow.left.circle" size={20} color="#145E4D" />
                 </TouchableOpacity>
-                <ThemedText type="button" style={styles.backText}>
-                  Back
-                </ThemedText>
+                <ThemedText type="button" style={styles.backText}>Back</ThemedText>
               </View>
               <View style={styles.headerTitleContainer}>
                 <ThemedText type="titleLarge" style={[styles.headerTitle, { fontSize: 28 }]}>
@@ -69,50 +129,137 @@ export default function ChooseScreen() {
           ),
         }}
       />
+
       <View style={styles.container}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-          {sampleRoutes.map((route, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => setSelectedIndex(index)}
-              activeOpacity={0.8}
+        <Text style={styles.instructionText}>📌 Hold a route to Edit or Delete</Text>
+
+        {isLongPressed && (
+          <TouchableWithoutFeedback
+            onPress={() => {
+              setIsLongPressed(false);
+              setSelectedIndex(null);
+            }}
+          >
+            <Animated.View style={[styles.dimOverlay, { opacity: fadeAnim }]} />
+          </TouchableWithoutFeedback>
+        )}
+
+        <View style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+            {sampleRoutes.map((route, index) => (
+              <Animated.View
+                key={index}
+                style={{
+                  overflow: 'hidden',
+                  height: heightAnims[index].interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 126],
+                  }),
+                  opacity: heightAnims[index],
+                  marginTop: 0,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => {
+                    if (!isLongPressed) setSelectedIndex(index);
+                  }}
+                  onLongPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setIsLongPressed(true);
+                    setSelectedIndex(index);
+                  }}
+                  delayLongPress={1000}
+                  activeOpacity={0.9}
+                  style={[
+                    styles.tripCard,
+                    selectedIndex === index && styles.tripCardSelected,
+                  ]}
+                >
+                  <View style={styles.tripTop}>
+                    <ThemedText type="defaultSemiBold">Starting point</ThemedText>
+                  </View>
+                  <View style={styles.checkpoints}>
+                    {route.checkpoints.map((cp, i) => (
+                      <ThemedText type="default" key={i}>|  {cp}</ThemedText>
+                    ))}
+                  </View>
+                  <View style={styles.tripBottom}>
+                    <ThemedText type="defaultSemiBold">Destination</ThemedText>
+                    <View style={styles.radioDotOuter}>
+                      {selectedIndex === index && <View style={styles.radioDotInner} />}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+
+            <Animated.View style={{ height: bottomSpacerAnim }} />
+          </ScrollView>
+
+          {isLongPressed && selectedIndex !== null && (
+            <Animated.View
               style={[
-                styles.tripCard,
-                selectedIndex === index && styles.tripCardSelected,
+                styles.absoluteCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [
+                    {
+                      translateY: cardAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [50, 0],
+                      }),
+                    },
+                  ],
+                },
               ]}
             >
-              <View style={styles.tripTop}>
-                <ThemedText type="defaultSemiBold">Starting point</ThemedText>
-              </View>
-              <View style={styles.checkpoints}>
-                {route.checkpoints.map((cp, i) => (
-                  <ThemedText type="default" key={i}>
-                    |  {cp}
-                  </ThemedText>
-                ))}
-              </View>
-              <View style={styles.tripBottom}>
-                <ThemedText type="defaultSemiBold">Destination</ThemedText>
-                <View style={styles.radioDotOuter}>
-                  {selectedIndex === index && <View style={styles.radioDotInner} />}
+              <TouchableOpacity
+                activeOpacity={0.95}
+                style={[styles.tripCard, styles.tripCardLongPressed]}
+              >
+                <View style={styles.tripTop}>
+                  <ThemedText type="defaultSemiBold">Starting point</ThemedText>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                <View style={styles.checkpoints}>
+                  {sampleRoutes[selectedIndex].checkpoints.map((cp, i) => (
+                    <ThemedText type="default" key={i}>|  {cp}</ThemedText>
+                  ))}
+                </View>
+                <View style={styles.tripBottom}>
+                  <ThemedText type="defaultSemiBold">Destination</ThemedText>
+                  <View style={styles.radioDotOuter}>
+                    <View style={styles.radioDotInner} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+        </View>
 
-        {/* Bottom Bar */}
         <View style={styles.bottomBar}>
-          <TouchableOpacity
-            style={[
-              styles.useButton,
-              selectedIndex === null && styles.useButtonDisabled,
-            ]}
-            onPress={handleUseAsAlarm}
-            disabled={selectedIndex === null}
-          >
-            <ThemedText type='button' style={[{ color: 'white' }]}>Use as Alarm</ThemedText>
-          </TouchableOpacity>
+          {isLongPressed ? (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                <Text style={styles.useButtonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.useButton,
+                selectedIndex === null && styles.useButtonDisabled,
+              ]}
+              onPress={handleUseAsAlarm}
+              disabled={selectedIndex === null}
+            >
+              <ThemedText type="button" style={[{ color: 'white' }]}>
+                Use as Alarm
+              </ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </>
@@ -137,10 +284,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 999,
     padding: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
     elevation: 4,
   },
   backText: {
@@ -166,18 +309,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     position: 'relative',
   },
+  instructionText: {
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    marginBottom: 10,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#444',
+    zIndex: 20,
+  },
+  dimOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    zIndex: 5,
+  },
+  absoluteCard: {
+    position: 'absolute',
+    top: 180,
+    left: 20,
+    right: 20,
+    zIndex: 100,
+  },
   tripCard: {
     borderWidth: 2,
     borderColor: '#155E54',
     borderRadius: 16,
     padding: 12,
     marginHorizontal: 20,
-    marginTop: 16,
     gap: 8,
+    backgroundColor: '#fff',
   },
   tripCardSelected: {
     backgroundColor: '#e6f5f2',
     borderColor: '#0C4037',
+  },
+  tripCardLongPressed: {
+    backgroundColor: '#bee4dd',
+    borderWidth: 2,
+    borderColor: '#064236',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
   tripTop: {
     flexDirection: 'row',
@@ -219,6 +392,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 8,
+    zIndex: 200,
   },
   useButton: {
     backgroundColor: '#145E4D',
@@ -231,6 +405,33 @@ const styles = StyleSheet.create({
   },
   useButtonText: {
     color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  editButton: {
+    flex: 1,
+    backgroundColor: '#1C6E5C',
+    borderRadius: 7,
+    paddingVertical: 14,
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  deleteButton: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#1C6E5C',
+    backgroundColor: 'white',
+    borderRadius: 7,
+    paddingVertical: 14,
+    marginLeft: 8,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#1C6E5C',
     fontWeight: '600',
     fontSize: 16,
   },
