@@ -1,30 +1,13 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    try {
-      const res = await fetch('http://localhost:3000/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-      console.log(data);
-
-      if (res.ok) {
-        alert('✅ Login successful');
-      } else {
-        alert('❌ ' + data.error);
-      }
-    } catch (err) {
-      alert('⚠️ Login failed');
-      console.error(err);
-    }
+    // login logic here...
   };
 
   return (
@@ -48,6 +31,10 @@ export default function LoginScreen() {
       />
 
       <Button title="Login" onPress={handleLogin} />
+
+      <TouchableOpacity onPress={() => router.push('/register')}>
+        <Text style={styles.link}>Don't have an account? Register</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -68,5 +55,10 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
     borderRadius: 6
+  },
+  link: {
+    marginTop: 16,
+    color: '#007bff',
+    textAlign: 'center'
   }
 });
