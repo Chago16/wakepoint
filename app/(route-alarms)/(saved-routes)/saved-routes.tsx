@@ -53,6 +53,7 @@ export default function ChooseScreen() {
 
   const handleEdit = () => {
     console.log('Edit:', sampleRoutes[selectedIndex!]);
+    router.push('//(edit-saved)/edit-bottom-sheets/edit-trip-sheet');
   };
 
   const handleDelete = () => {
