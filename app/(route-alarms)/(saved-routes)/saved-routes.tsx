@@ -1,18 +1,18 @@
-import { router, Stack } from 'expo-router';
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  Dimensions,
-  ScrollView,
-  Text,
-  TouchableWithoutFeedback,
-  Animated,
-} from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import * as Haptics from 'expo-haptics';
+import { router, Stack } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HEADER_HEIGHT = SCREEN_HEIGHT * 0.26;
@@ -53,7 +53,7 @@ export default function ChooseScreen() {
 
   const handleEdit = () => {
     console.log('Edit:', sampleRoutes[selectedIndex!]);
-    router.push('//(edit-saved)/edit-bottom-sheets/edit-trip-sheet');
+    router.push('//(edit-saved)/edit-map-screen?mode=create');
   };
 
   const handleDelete = () => {

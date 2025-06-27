@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
   const handleLogin = async () => {
     // login logic here...
@@ -29,6 +30,14 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
       />
+
+      <TouchableOpacity
+        style={styles.checkboxContainer}
+        onPress={() => setKeepLoggedIn(prev => !prev)}
+      >
+        <View style={[styles.checkbox, keepLoggedIn && styles.checkedBox]} />
+        <Text style={styles.checkboxLabel}>Keep me logged in</Text>
+      </TouchableOpacity>
 
       <Button title="Login" onPress={handleLogin} />
 
@@ -55,6 +64,25 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
     borderRadius: 6
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#666',
+    marginRight: 8,
+    borderRadius: 4
+  },
+  checkedBox: {
+    backgroundColor: '#007bff'
+  },
+  checkboxLabel: {
+    fontSize: 16
   },
   link: {
     marginTop: 16,

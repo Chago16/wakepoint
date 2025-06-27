@@ -2,14 +2,14 @@ import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
 import React, { useRef } from 'react';
 import {
-    Animated,
-    PanResponder,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TouchableOpacity,
-    View,
+  Animated,
+  PanResponder,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.65;
@@ -96,9 +96,9 @@ const CreateTripSheet: React.FC<Props> = ({ setMode }) => {
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
-          <ThemedText type="titleSmall">Create Trip Alarm</ThemedText>
+          <ThemedText type="titleSmall">Edit Trip Alarm</ThemedText>
           <ThemedText type="default" style={{ marginBottom: 25 }}>
-            We will wake you up. Don’t worry!
+            Tou can update and use your saved alarm here.
           </ThemedText>
 
           <View style={styles.checkpoint}>
