@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text, Alert } from 'react-native';
+import { router } from 'expo-router'; // for redirection after success
 
 export default function RegisterScreen() {
   const [user_name, setUsername] = useState('');
@@ -16,25 +17,30 @@ export default function RegisterScreen() {
       return Alert.alert('Passwords do not match');
     }
 
-    const user_id = Date.now().toString(); // simple ID for dev
-
     try {
-      const res = await fetch('http://<your-ip>:3000/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id, user_name, email, password })
-      });
+        console.log("📡 Sending request...");
 
-      const data = await res.json();
-      if (res.ok) {
-        Alert.alert('✅ Registration successful');
-      } else {
-        Alert.alert('❌ ' + data.error);
-      }
-    } catch (err) {
-      Alert.alert('⚠️ Error registering');
-      console.error(err);
+        const res = await fetch('http://192.168.100.16:3000/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_name, email, password })
+        });
+
+        console.log("📬 Got a response, waiting for JSON...");
+        const data = await res.json();
+        console.log("📦 API response data:", data);
+
+        if (res.ok) {
+            Alert.alert('✅ Registration successful');
+            router.push('/login');
+        } else {
+            Alert.alert('❌ ' + data.error);
+        }
+        } catch (err) {
+        console.error('💥 Register error:', err);
+        Alert.alert('⚠️ Failed to register');
     }
+
   };
 
   return (
@@ -52,6 +58,7 @@ export default function RegisterScreen() {
         style={styles.input}
         placeholder="Email"
         autoCapitalize="none"
+        keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
       />
