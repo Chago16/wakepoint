@@ -1,10 +1,10 @@
 import React from 'react';
 
 import AlarmSetSheet from './edit-bottom-sheets/edit-alarm-set-sheet';
-import TripCheckpointsSheet from './edit-bottom-sheets/edit-trip-checkpoints-sheet';
+import TripCheckpointsSheet from './edit-bottom-sheets/edit-checkpoints-sheet';
 import CreateTripSheet from './edit-bottom-sheets/edit-trip-sheet';
 
-type Mode = 'create' | 'checkpoints' | 'alarm';
+type Mode = 'edit' | 'checkpoints' | 'alarm';
 
 interface Props {
   mode: Mode;
@@ -13,7 +13,7 @@ interface Props {
 
 const BottomSheetSwitcher: React.FC<Props> = ({ mode, setMode }) => {
   switch (mode) {
-    case 'create':
+    case 'edit':
       return <CreateTripSheet setMode={setMode} />;
     case 'checkpoints':
       return <TripCheckpointsSheet setMode={setMode} />;

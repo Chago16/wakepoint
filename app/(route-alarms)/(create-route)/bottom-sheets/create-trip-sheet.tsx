@@ -1,19 +1,20 @@
 import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
+import { router } from 'expo-router';
 import React, { useRef } from 'react';
 import {
-    Animated,
-    PanResponder,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TouchableOpacity,
-    View,
+  Animated,
+  PanResponder,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-const MAX_HEIGHT = WINDOW_HEIGHT * 0.65;
-const MID_HEIGHT = WINDOW_HEIGHT * 0.35;
+const MAX_HEIGHT = WINDOW_HEIGHT * 0.70;
+const MID_HEIGHT = WINDOW_HEIGHT * 0.51;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT , 0];
 
@@ -95,25 +96,38 @@ const CreateTripSheet: React.FC<Props> = ({ setMode }) => {
           <View style={styles.dragHandle} />
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.sheetContent}
+          showsVerticalScrollIndicator={false}
+        >
           <ThemedText type="titleSmall">Create Trip Alarm</ThemedText>
           <ThemedText type="default" style={{ marginBottom: 25 }}>
             We will wake you up. Don’t worry!
           </ThemedText>
 
-          <View style={styles.checkpoint}>
-            <View style={styles.checkIconCircle} />
-            <View style={styles.checkpointTextBox}>
-              <ThemedText type="defaultSemiBold">Destination</ThemedText>
-            </View>
-          </View>
+          <View style={{ position: 'relative'}}>
+            <View style={styles.timelineLine} />
 
-          <View style={styles.checkpoint}>
-            <View style={styles.finalPin} />
-            <View style={styles.checkpointTextBox}>
-              <ThemedText type="defaultSemiBold">From</ThemedText>
+            <View style={styles.checkpoint}>
+              <View style={styles.checkIconCircle} />
+              <View style={styles.checkpointTextBox}>
+                <ThemedText type="option">FROM</ThemedText>
+                <ThemedText type="defaultSemiBold">
+                  From
+                </ThemedText>
+              </View>
+            </View>
+
+            <View style={styles.checkpoint}>
+              <View style={styles.finalPin} />
+              <View style={styles.checkpointTextBox}>
+                <ThemedText type="option">DESTINATION</ThemedText>
+                <ThemedText type="defaultSemiBold">Destination</ThemedText>
+              </View>
             </View>
           </View>
+          
 
           <View style={styles.separator} />
 
@@ -121,56 +135,41 @@ const CreateTripSheet: React.FC<Props> = ({ setMode }) => {
             Alarm Settings
           </ThemedText>
 
-          <View style={[styles.settingRow, { marginBottom: 8 }]}>
-            <View>
-              <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
-              <ThemedText type="default">Default tone</ThemedText>
-            </View>
-            <Switch
-              value={soundEnabled}
-              onValueChange={setSoundEnabled}
-              trackColor={{ false: '#E0E0E0', true: '#104E3B' }}
-              thumbColor={soundEnabled ? '#fff' : '#d3d3d3'}
-            />
-          </View>
+          <View style={[styles.settings]}>
+              {[ 
+              { label: 'Alarm sound', subtitle: 'Default tone', value: soundEnabled, onChange: setSoundEnabled },
+              { label: 'Vibration', subtitle: 'Silent alert', value: vibrationEnabled, onChange: setVibrationEnabled },
+              { label: 'Notify me earlier', subtitle: '300m alert', value: notifyEarlierEnabled, onChange: setNotifyEarlierEnabled },
+            ].map((setting, idx) => (
+              <React.Fragment key={idx}>
+                <View style={[styles.settingRow, { marginVertical: 8 }]}>
+                  <View>
+                    <ThemedText type="defaultSemiBold">{setting.label}</ThemedText>
+                    <ThemedText type="default">{setting.subtitle}</ThemedText>
+                  </View>
+                  <Switch
+                    value={setting.value}
+                    onValueChange={setting.onChange}
+                    trackColor={{ false: '#E0E0E0', true: '#104E3B' }}
+                    thumbColor={setting.value ? '#fff' : '#d3d3d3'}
+                  />
+                </View>
+                {idx < 2 && <View style={styles.separator} />}
+              </React.Fragment>
+            ))}
+          </View >
+          
 
-          <View style={styles.separator} />
-
-          <View style={[styles.settingRow, { marginTop: 8, marginBottom: 8 }]}>
-            <View>
-              <ThemedText type="defaultSemiBold">Vibration</ThemedText>
-              <ThemedText type="default">Silent alert</ThemedText>
-            </View>
-            <Switch
-              value={vibrationEnabled}
-              onValueChange={setVibrationEnabled}
-              trackColor={{ false: '#E0E0E0', true: '#104E3B' }}
-              thumbColor={vibrationEnabled ? '#fff' : '#d3d3d3'}
-            />
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={[styles.settingRow, { marginTop: 8, marginBottom: -20 }]}>
-            <View>
-              <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
-              <ThemedText type="default">300m alert</ThemedText>
-            </View>
-            <Switch
-              value={notifyEarlierEnabled}
-              onValueChange={setNotifyEarlierEnabled}
-              trackColor={{ false: '#E0E0E0', true: '#104E3B' }}
-              thumbColor={notifyEarlierEnabled ? '#fff' : '#d3d3d3'}
-            />
-          </View>
+          <View style={{ height: 40 }} /> {/* Spacer for buttons */}
         </ScrollView>
       </Animated.View>
+
 
       <View style={styles.separator} />
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={styles.cancelBtn}
-          onPress={() => setMode('create')} // You can also add a modal confirm here
+          onPress={() => router.back()} // You can also add a modal confirm here
         >
           <ThemedText type="button" style={{ color: '#104E3B' }}>
             Cancel
@@ -206,7 +205,8 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#8CC63F',
+    borderWidth: 4.5,
+    borderColor: '#8CC63F',
     marginTop: 8,
     marginRight: 12,
   },
@@ -234,12 +234,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  settings: {
+    marginBottom: 25,
+  },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingTop: 20,
     paddingBottom: 20,
-    paddingHorizontal: 40,
+    paddingHorizontal: 20,
     backgroundColor: 'white',
   },
   useAlarmBtn: {
@@ -271,5 +274,14 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: '#d3d3d3',
     borderRadius: 10,
+  },
+  timelineLine: {
+  position: 'absolute',
+  left: 7.3,
+  top:20,
+  bottom: 55,
+  width: 2,
+  backgroundColor: '#8CC63F',
+  zIndex: -1,
   },
 });

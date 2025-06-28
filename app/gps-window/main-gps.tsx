@@ -1,11 +1,13 @@
+import { ThemedText } from '@/components/ThemedText';
 import { ETAStatusBar } from '@/components/ui/ETAStatusBar'; // adjust path as needed
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
 import Mapbox, { Camera } from '@rnmapbox/maps';
 import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus, StyleSheet, View } from 'react-native';
+import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -54,6 +56,23 @@ export default function MapScreen() {
         }}
       />
       <View style={styles.container}>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity onPress={() => router.push('/dashboard')} style={styles.backCircle}>
+            <IconSymbol name="arrow.left.circle" size={20} color="#145E4D" />
+            <ThemedText type="defaultSemiBold" style={styles.backText}>Back</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.cancelTripButton}
+          onPress={() => {
+            // Optionally: show confirmation modal before routing
+            router.push('/dashboard'); // or set a trip state to "cancelled"
+          }}
+        >
+          <ThemedText type="button" style={styles.cancelTripText}>Cancel Trip</ThemedText>
+        </TouchableOpacity>                    
+
         <View style={styles.statusBarOverlay} />
         <Mapbox.MapView
           style={styles.map}
@@ -94,6 +113,44 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerTopRow: {
+    position: 'absolute',
+    top: 40, // adjust based on your safe area / design
+    left: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight:10,
+    
+    borderRadius: 999,
+    backgroundColor: '#ffffff',
+    
+    zIndex: 99,
+  },
+  backCircle: {
+    borderRadius: 999,
+    padding: 4,
+    flexDirection: 'row'
+  },
+  backText: {
+    color: '#145E4D',
+    marginLeft: 6,
+  },
+  cancelTripButton: {
+    position: 'absolute',
+    bottom: 130,
+    alignSelf: 'center',
+    backgroundColor: '#D9534F', // red tone
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 30,
+    elevation: 5,
+    zIndex: 100,
+  },
+  cancelTripText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   map: {
     flex: 1,

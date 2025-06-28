@@ -11,7 +11,7 @@ Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW
 
 const MapScreen = () => {
   const { mode: initialMode } = useLocalSearchParams();
-  const [mode, setMode] = useState<string>(initialMode ?? 'create'); // 'create' by default
+  const [mode, setMode] = useState<string>(initialMode ?? 'edit'); // 'create' by default
   const [centerCoordinate, setCenterCoordinate] = useState<[number, number]>([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);

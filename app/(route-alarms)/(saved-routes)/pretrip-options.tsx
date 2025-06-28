@@ -20,7 +20,7 @@ import {
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
 const BOTTOM_SHEET_MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
-const MAX_BOTTOM_SHEET_HEIGHT = WINDOW_HEIGHT * 0.85;
+const MAX_BOTTOM_SHEET_HEIGHT = WINDOW_HEIGHT * 0.76;
 const DRAG_THRESHOLD = 50;
 
 const MapScreen = () => {
@@ -135,88 +135,120 @@ const MapScreen = () => {
           <View style={{ flex: 1 }}>
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={styles.sheetContent}
+              contentContainerStyle={[styles.sheetContent, { flexGrow: 1 }]} // Add flexGrow here
               showsVerticalScrollIndicator={false}
             >
+
+
               <ThemedText type="titleSmall" style={{ marginBottom: 4 }}>
                 Saved Route
               </ThemedText>
               <ThemedText type="default" style={{ marginBottom: 16 }}>
-                Select checkpoints to customize your route.
+                Review trip details before starting your journey.
               </ThemedText>
 
-              <View style={styles.checkpoint}>
-                <View style={styles.checkIconCircle} />
-                <View style={styles.checkpointTextBox}>
-                  <ThemedText type="defaultSemiBold">
-                    Sonoma Residences, Sta. Cruz, Sta. Maria, Bulacan
-                  </ThemedText>
-                </View>
-              </View>
+              <View style={{ position: 'relative', marginBottom: 16 }}>
+                {/* Vertical timeline line */}
+                <View style={styles.timelineLine} />
 
-              {[1, 2, 3].map((i) => (
-                <View key={i} style={styles.checkpoint}>
-                  <View style={styles.verticalLine} />
-                  <View style={styles.checkpointDot} />
-                  <View>
-                    <ThemedText type="defaultSemiBold">{`Checkpoint - ${i} Name`}</ThemedText>
-                    <ThemedText type="default">{`Address of checkpoint ${i} here`}</ThemedText>
+                {/* Origin */}
+                <View style={styles.checkpoint}>
+                  <View style={styles.checkIconCircle} />
+                  <View style={styles.checkpointTextBox}>
+                    <ThemedText type="option">
+                      FROM
+                    </ThemedText>
+                    <ThemedText type="defaultSemiBold">
+                      Sonoma Residences, Sta. Cruz, Sta. Maria, Bulacan
+                    </ThemedText>
                   </View>
                 </View>
-              ))}
 
-              <View style={styles.checkpoint}>
-                <View style={styles.finalPin} />
-                <View style={styles.checkpointTextBox}>
-                  <ThemedText type="defaultSemiBold">
-                    Anonas Street, Sta. Mesa, Manila
-                  </ThemedText>
+                {/* Checkpoints */}
+                {[1, 2, 3].map((i) => (
+                  <View key={i} style={styles.checkpoints}>
+                    <View style={styles.line} />
+                    <View style={styles.checkpointDot} />
+                    <View style={styles.checkpointDetail}>
+                      <ThemedText type="option">{`CHECKPOINT ${i}`}</ThemedText>
+                      <ThemedText type="default">{`Address of checkpoint ${i} here`}</ThemedText>
+                    </View>
+                  </View>
+                ))}
+
+                {/* Destination */}
+                <View style={styles.checkpoint}>
+                  <View style={styles.finalPin} />
+                  <View style={styles.checkpointTextBox}>
+                    <ThemedText type="option">
+                      DESTINATION
+                    </ThemedText>
+                    <ThemedText type="defaultSemiBold">
+                      Anonas Street, Sta. Mesa, Manila
+                    </ThemedText>
+                  </View>
                 </View>
               </View>
 
               <View style={styles.separator} />
 
-              <ThemedText type="titleSmall" style={{ marginBottom: 12 }}>
+              <ThemedText type="titleSmall" style={{ marginBottom: 12, marginTop: 20 }}>
                 Alarm Settings
               </ThemedText>
 
-              {[
-                { label: 'Alarm Sound', value: 'Enabled' },
-                { label: 'Vibration', value: 'Enabled' },
-                { label: 'Notify Earlier', value: 'Disabled' },
-              ].map((item, idx) => (
-                <View style={styles.settingRow} key={idx}>
-                  <View>
-                    <ThemedText type="defaultSemiBold">{item.label}</ThemedText>
-                    <ThemedText type="default">{item.value}</ThemedText>
-                  </View>
-                </View>
-              ))}
+              <View style={styles.settingRow}>
+                {[
+                  { label: 'Alarm Sound', value: true },
+                  { label: 'Vibration', value: true },
+                  { label: 'Notify Earlier', value: false },
+                ].map((item, idx) => {
+                  const isEnabled = item.value;
+                  return (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.settingItem
+                      ]}
+                    >
+                      <ThemedText
+                        type="defaultSemiBold"
+                        style={{ color: isEnabled ? 'black' : '#D4D4D4' }}
+                      >
+                        {item.label}
+                      </ThemedText>
+                      <ThemedText
+                        type="default"
+                        style={{ color: isEnabled ? 'black' : '#D4D4D4' }}
+                      >
+                        {isEnabled ? 'Enabled' : 'Disabled'}
+                      </ThemedText>
+                    </View>
+                  );
+                })}
+              </View>
             </ScrollView>
-
-            
           </View>
         </Animated.View>
-            
+
         <View style={styles.separator} />
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => router.back()}
-              >
-                <ThemedText type="button" style={{ color: '#104E3B' }}>
-                  Cancel
-                </ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.useAlarmBtn}
-                onPress={() => setShowModal(true)}
-              >
-                <ThemedText type="button" style={{ color: 'white' }}>
-                  Use Alarm
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.cancelBtn}
+            onPress={() => router.back()}
+          >
+            <ThemedText type="button" style={{ color: '#104E3B' }}>
+              Cancel
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.useAlarmBtn}
+            onPress={() => setShowModal(true)}
+          >
+            <ThemedText type="button" style={{ color: 'white' }}>
+              Use Alarm
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
         {showModal && (
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
@@ -304,12 +336,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
+    borderRadius:20,
+  },
+  checkpoints: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingLeft: 20,
   },
   checkIconCircle: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#8CC63F',
+    borderWidth: 4.5,
+    borderColor: '#8CC63F',
     marginTop: 8,
     marginRight: 12,
   },
@@ -341,9 +381,15 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   checkpointTextBox: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F1F1F1',
     padding: 10,
     borderRadius: 6,
+    flex: 1,
+  },
+  checkpointDetail: {
+    backgroundColor: '#F1F1F1',
+    padding: 10,
+    borderRadius: 10,
     flex: 1,
   },
   separator: {
@@ -354,7 +400,11 @@ const styles = StyleSheet.create({
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 90,
+    justifyContent: 'space-between',
+  },
+  settingItem: {
+    flexDirection: 'column',
   },
   togglePlaceholder: {
     width: 45,
@@ -367,7 +417,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 20,
     paddingBottom: 20,
-    paddingHorizontal: 40,
+    paddingHorizontal: 20,
     backgroundColor: 'white',
   },
   useAlarmBtn: {
@@ -427,5 +477,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginLeft: 8,
+  },
+  timelineLine: {
+  position: 'absolute',
+  left: 7.3,
+  top:20,
+  bottom: 55,
+  width: 2,
+  backgroundColor: '#8CC63F',
+  zIndex: -1,
+  },
+  line: {
+    position: 'absolute',
+    top: 9.8,          
+    left: 9,         
+    width: 11,        
+    height: 2,        
+    backgroundColor: '#8CC63F',
+    zIndex: -1,
   },
 });

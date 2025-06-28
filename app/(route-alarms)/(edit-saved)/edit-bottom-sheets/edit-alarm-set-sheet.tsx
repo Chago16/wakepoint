@@ -74,10 +74,10 @@ const AlarmSetSheet = () => {
             resizeMode="contain"
           />
           <ThemedText type="titleSmall" style={{ color: '#145E4D', textAlign: 'center' }}>
-            Great Job! Your alarm is set.
+            Your alarm has been saved.
           </ThemedText>
           <ThemedText type="default" style={{ marginBottom: 25, textAlign: 'center' }}>
-            Your trip is approximately 3 hours
+            You can start your trip now or use it later.
           </ThemedText>
         </ScrollView>
       </Animated.View>
@@ -88,7 +88,7 @@ const AlarmSetSheet = () => {
           onPress={() => router.replace('/gps-window/main-gps')}
         >
           <ThemedText type="button" style={{ color: 'white' }}>
-            Use the Alarm
+            Use the Updated Alarm
           </ThemedText>
         </TouchableOpacity>
         <TouchableOpacity

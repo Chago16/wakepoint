@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Stack, router } from 'expo-router';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -12,6 +13,15 @@ export default function ChooseScreen() {
         }}
       />
       <View style={styles.container}>
+        
+                      <TouchableOpacity onPress={() => router.push('/dashboard')} style={styles.backCircle}>
+                    <View style={styles.headerTopRow}>
+                        <IconSymbol name="arrow.left.circle" size={20} color="#145E4D" />
+                    </View>
+                    
+                      <ThemedText type="defaultSemiBold" style={styles.backText}>Back</ThemedText>
+                    
+                      </TouchableOpacity>
         <View style={styles.container2}>
           <ThemedText type="titleLarge" style={{ color: '#CFC8F3' }}>
             WakePoint
@@ -48,6 +58,24 @@ const styles = StyleSheet.create({
   },
   container2: {
     marginBottom: 30,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 999,
+    padding: 4,
+  },
+  backCircle: {
+    position: 'absolute',
+    top: 40, // adjust based on your safe area / design
+    left: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    color: 'white',
+    marginLeft: 6,
   },
   button: {
     backgroundColor: '#fff',
