@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Stack, router } from 'expo-router';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ChooseScreen() {
   return (
@@ -23,9 +23,11 @@ export default function ChooseScreen() {
                     
                       </TouchableOpacity>
         <View style={styles.container2}>
-          <ThemedText type="titleLarge" style={{ color: '#CFC8F3' }}>
-            WakePoint
-          </ThemedText>
+          <Image
+                                          source={require('@/assets/images/Title.png')} 
+                                          style={styles.titleImage}
+                                          resizeMode="contain"
+                                        />
         </View>
 
         <TouchableOpacity
@@ -57,7 +59,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   container2: {
-    marginBottom: 30,
+    marginTop: 0,
+    marginBottom: 50,
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -97,4 +100,8 @@ const styles = StyleSheet.create({
     width: '80%',
     elevation: 5,
   },
+  titleImage: {
+    width: 300,
+    height: 200,
+  }
 });

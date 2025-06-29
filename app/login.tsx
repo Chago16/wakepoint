@@ -3,6 +3,7 @@ import { Stack, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
+  Image,
   ImageBackground,
   StyleSheet,
   TextInput,
@@ -57,9 +58,15 @@ export default function LoginScreen() {
         resizeMode="cover"
       >
         <View style={styles.container}>
-          <ThemedText type="title">Wakepoint</ThemedText>
-          <ThemedText type="default" style={{ marginBottom: 100 }}>
-            Securely login to your WakePoint account.
+          <Image
+            source={require('@/assets/images/Title.png')} 
+            style={styles.titleImage}
+            resizeMode="contain"/>
+          <ThemedText type="title" style={{ marginTop: 250 }}>
+            Login
+          </ThemedText>
+          <ThemedText type="default" style={{ marginBottom: 20 }}>
+            Securely login to your account.
           </ThemedText>
 
           <ThemedText type="titleSmall" style={styles.label}>Email</ThemedText>
@@ -117,12 +124,13 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
     justifyContent: 'center',
     flex: 1,
+    paddingHorizontal:40,
   },
   input: {
     borderColor: '#E3E3E8',
     borderWidth: 1,
     padding: 10,
-    marginBottom: 30,
+    marginBottom: 15,
     borderRadius: 6,
     fontFamily: 'Quicksand',
     backgroundColor: 'white',
@@ -165,5 +173,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 18,
+  },
+  titleImage: {
+    width: 300,
+    height: 200,
+    marginBottom: 50,
+    top: 70,
+    position: 'absolute',
+    alignSelf: 'center',
   },
 });

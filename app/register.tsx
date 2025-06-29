@@ -55,7 +55,7 @@ export default function RegisterScreen() {
           <ThemedText type="defaultSemiBold" style={{ color: '#145E4D' }}>Back</ThemedText>
         </TouchableOpacity>
 
-        <ThemedText type="title">Wakepoint</ThemedText>
+        <ThemedText type="title">Register</ThemedText>
         <View style={[styles.sub, { marginBottom: 20 }]}>
           <ThemedText type="defaultSemiBold">Create an account</ThemedText>
           <ThemedText type="default"> within 10 seconds.</ThemedText>
