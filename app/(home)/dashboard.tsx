@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Image, ImageBackground, NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { getUserId, clearUserId } from '@utils/session';
-import { BASE_URL } from '@config';
+import { fetchUserName } from '@utils/fetchUserName'; // ✅ your new utility
 
 export default function HomeScreen() {
   const [currentIndex, setCurrentIndex] = useState(1);
@@ -15,31 +15,18 @@ export default function HomeScreen() {
   const cards = [0, 1, 2]; // previous, current, upcoming
 
   useEffect(() => {
-    const fetchUserName = async () => {
-      const user_id = await getUserId();
-      if (!user_id) return;
-
-      try {
-        const res = await fetch(`${BASE_URL}/api/user-name`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id }),
-        });
-
-        const data = await res.json();
-        if (res.ok) {
-          setUserName(data.user_name);
-          console.log('👤 user_name:', data.user_name);
-        } else {
-          console.error('⚠️ Failed to fetch name:', data.message);
-        }
-      } catch (err) {
-        console.error('❌ Error contacting backend:', err);
+    const getUser = async () => {
+      const name = await fetchUserName();
+      if (name) {
+        setUserName(name);
+        console.log('👤 user_name:', name);
+      } else {
+        console.warn('⚠️ No user name retrieved.');
       }
     };
-
-    fetchUserName();
+    getUser();
   }, []);
+
 
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
