@@ -3,20 +3,53 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, ImageBackground, NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-
-
+import { getUserId, clearUserId } from '@utils/session';
+import { BASE_URL } from '@config';
 
 export default function HomeScreen() {
   const [currentIndex, setCurrentIndex] = useState(1);
+  const [userName, setUserName] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const cards = [0, 1, 2]; // previous, current, upcoming
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      const user_id = await getUserId();
+      if (!user_id) return;
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/user-name`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id }),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          setUserName(data.user_name);
+          console.log('👤 user_name:', data.user_name);
+        } else {
+          console.error('⚠️ Failed to fetch name:', data.message);
+        }
+      } catch (err) {
+        console.error('❌ Error contacting backend:', err);
+      }
+    };
+
+    fetchUserName();
+  }, []);
 
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / 282); // 270 width + 12 margin
     setCurrentIndex(index);
+  };
+
+  const handleLogout = async () => {
+    await clearUserId();
+    router.replace('/login');
   };
 
   return (
@@ -35,11 +68,11 @@ export default function HomeScreen() {
           <ThemedView style={styles.headerContainer}>
             <ThemedView style={styles.welcomeContainer}>
               <ThemedText type="subtitle1">Welcome</ThemedText>
-              <ThemedText type="subtitle2">Name,</ThemedText>
+              <ThemedText type="subtitle2">{userName || 'Name'},</ThemedText>
             </ThemedView>
             <ThemedText type="defaultSemiBold">We are here to wake you up </ThemedText>
           </ThemedView>
-          <TouchableOpacity onPress={() => console.log('Logout')} style={{ marginTop: 5 }}>
+          <TouchableOpacity onPress={handleLogout} style={{ marginTop: 5 }}>
             <IconSymbol name="rectangle.portrait.and.arrow.right" size={28} color="black" />
           </TouchableOpacity>
         </ThemedView>

@@ -1,8 +1,7 @@
-// controllers/authController.js
-
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { BASE_URL } from '@config';
+import { saveUserId, clearUserId } from '@utils/session';
 
 export const handleLogin = async (email, password) => {
   if (!email || !password) {
@@ -13,7 +12,7 @@ export const handleLogin = async (email, password) => {
     const res = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
     });
 
     const text = await res.text();
@@ -22,6 +21,7 @@ export const handleLogin = async (email, password) => {
     try {
       const data = JSON.parse(text);
       if (res.ok) {
+        await saveUserId(data.user_id); // ✅ Save to session
         Alert.alert('✅ Login successful');
         router.push('/(home)/dashboard');
       } else {
@@ -47,17 +47,14 @@ export const handleRegister = async (user_name, email, password, confirm) => {
   }
 
   try {
-    console.log("📡 Sending request...");
-
     const res = await fetch(`${BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_name, email, password })
+      body: JSON.stringify({ user_name, email, password }),
     });
 
-    console.log("📬 Got a response, waiting for JSON...");
     const data = await res.json();
-    console.log("📦 API response data:", data);
+    console.log('📦 API response data:', data);
 
     if (res.ok) {
       Alert.alert('✅ Registration successful');
@@ -69,4 +66,9 @@ export const handleRegister = async (user_name, email, password, confirm) => {
     console.error('💥 Register error:', err);
     Alert.alert('⚠️ Failed to register');
   }
+};
+
+export const handleLogout = async () => {
+  await clearUserId(); // ✅ Clear session
+  router.replace('/login');
 };

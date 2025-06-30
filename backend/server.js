@@ -2,6 +2,7 @@ const express = require('express');
 const connectDB = require('./db');
 require('dotenv').config();
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
 
 const app = express();
 const PORT = 3000;
@@ -10,6 +11,7 @@ connectDB(); // ✅ connects to MongoDB Atlas
 
 app.use(express.json()); // middleware
 app.use('/auth', authRoutes); // routes
+app.use('/api', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('WakePoint Backend Server ✅');

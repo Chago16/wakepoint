@@ -1,23 +1,23 @@
-// controllers/userController.js
 const User = require('../models/User');
 
-exports.getUserNameById = async (req, res) => {
+// POST /api/user-name
+const getUserNameById = async (req, res) => {
+  const { user_id } = req.body;
+
   try {
-    const { user_id } = req.body;
-
-    if (!user_id) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
     const user = await User.findOne({ user_id });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ user_name: user.user_name });
+    const firstName = user.user_name.split(' ')[0]; // 🪓 get only first name
+    return res.status(200).json({ user_name: firstName });
+
   } catch (err) {
-    console.error('Error fetching user name:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Error in getUserNameById:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
+
+module.exports = { getUserNameById };
