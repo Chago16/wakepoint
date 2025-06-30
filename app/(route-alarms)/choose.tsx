@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Stack, router } from 'expo-router';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ChooseScreen() {
   return (
@@ -12,10 +13,21 @@ export default function ChooseScreen() {
         }}
       />
       <View style={styles.container}>
+        
+                      <TouchableOpacity onPress={() => router.push('/dashboard')} style={styles.backCircle}>
+                    <View style={styles.headerTopRow}>
+                        <IconSymbol name="arrow.left.circle" size={20} color="#145E4D" />
+                    </View>
+                    
+                      <ThemedText type="defaultSemiBold" style={styles.backText}>Back</ThemedText>
+                    
+                      </TouchableOpacity>
         <View style={styles.container2}>
-          <ThemedText type="titleLarge" style={{ color: '#CFC8F3' }}>
-            WakePoint
-          </ThemedText>
+          <Image
+                                          source={require('@/assets/images/Title.png')} 
+                                          style={styles.titleImage}
+                                          resizeMode="contain"
+                                        />
         </View>
 
         <TouchableOpacity
@@ -47,7 +59,26 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   container2: {
-    marginBottom: 30,
+    marginTop: 0,
+    marginBottom: 50,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 999,
+    padding: 4,
+  },
+  backCircle: {
+    position: 'absolute',
+    top: 40, // adjust based on your safe area / design
+    left: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    color: 'white',
+    marginLeft: 6,
   },
   button: {
     backgroundColor: '#fff',
@@ -69,4 +100,8 @@ const styles = StyleSheet.create({
     width: '80%',
     elevation: 5,
   },
+  titleImage: {
+    width: 300,
+    height: 200,
+  }
 });

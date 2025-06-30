@@ -1,10 +1,10 @@
-import { Tabs, router } from 'expo-router';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { HapticTab } from '@/components/HapticTab';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Tabs, router } from 'expo-router';
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -64,15 +64,12 @@ export default function TabLayout() {
               />
               <TouchableOpacity
                 onPress={() => router.push('/(route-alarms)/choose')}
-                style={[
-                  styles.plusButton,
-                  {
-                    backgroundColor: theme.text,
-                    borderColor: theme.tabBarBackground,
-                  },
-                ]}
               >
-                <IconSymbol name="plus" size={60} color={theme.tabBarBackground} />
+                <Image
+                                source={require('@/assets/images/icon.png')} 
+                                style={styles.optionImage}
+                                resizeMode="contain"
+                              />
               </TouchableOpacity>
               <Text style={[styles.tabLabel, { color: theme.text }]}>Set Alarm</Text>
             </View>
@@ -102,27 +99,27 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   plusButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 82,
+    height: 82,
+    borderRadius: 50,
     borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  plusOutline: {
-    position: 'absolute',
-    width: 82, // slightly larger than button
-    height: 82,
-    borderRadius: 41,
-    backgroundColor: '#fff',
-    zIndex: -1,
+    backgroundColor: 'transparent',
+    top: 5,
   },
   tabLabel: {
     fontSize: 10,
     lineHeight: 16,
     textAlign: 'center',
-    marginTop: -3,
     fontWeight: Platform.OS === 'android' ? '700' : '600',
+    marginTop:5,
+  },
+   optionImage: {
+    width: 82,
+    height: 82,
+    zIndex: 1,
+    top: 5,
   },
 });
 

@@ -3,14 +3,14 @@ import { WINDOW_HEIGHT } from '@/utils/index';
 import { router } from 'expo-router';
 import React, { useRef } from 'react';
 import {
-    Animated,
-    Image,
-    PanResponder,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  PanResponder,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.55;
@@ -77,7 +77,7 @@ const AlarmSetSheet = () => {
             Great Job! Your alarm is set.
           </ThemedText>
           <ThemedText type="default" style={{ marginBottom: 25, textAlign: 'center' }}>
-            Your trip is approximately 3 hours
+            You can start your trip now or use it later.
           </ThemedText>
         </ScrollView>
       </Animated.View>
@@ -88,7 +88,7 @@ const AlarmSetSheet = () => {
           onPress={() => router.replace('/gps-window/main-gps')}
         >
           <ThemedText type="button" style={{ color: 'white' }}>
-            Use the Alarm
+            Use and Save the Alarm
           </ThemedText>
         </TouchableOpacity>
         <TouchableOpacity

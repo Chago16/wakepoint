@@ -15,7 +15,7 @@ const MIN_HEIGHT = WINDOW_HEIGHT * 0.25;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0];
 
 interface Props {
-  setMode: (mode: 'create' | 'checkpoints' | 'alarm') => void;
+  setMode: (mode: 'edit' | 'checkpoints' | 'alarm') => void;
 }
 
 const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
@@ -101,7 +101,7 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
           contentContainerStyle={styles.sheetContent}
           showsVerticalScrollIndicator={false}
         >
-          <ThemedText type="titleSmall">Choose Trip Checkpoints</ThemedText>
+          <ThemedText type="titleSmall">Update Trip Checkpoints</ThemedText>
           <ThemedText type="default" style={{ marginBottom: 10 }}>
             To add a checkpoint, tap on the map. Tap again to delete.
           </ThemedText>
@@ -145,7 +145,7 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={styles.cancelBtn}
-          onPress={() => setMode('create')}
+          onPress={() => setMode('edit')}
         >
           <ThemedText type="button" style={{ color: '#104E3B' }}>Back</ThemedText>
         </TouchableOpacity>
@@ -175,10 +175,10 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <ThemedText type="title" style={{ fontSize: 20, textAlign: 'center' }}>
-              Create Alarm?
+              Confirm Alarm Save
             </ThemedText>
             <ThemedText type="default" style={{ marginTop: 8, marginBottom: 24, textAlign: 'center' }}>
-              Proceeding will create and lock in your route.
+              Saving this alarm will update your edits. Continue?
             </ThemedText>
 
             <View style={styles.modalButtonRow}>

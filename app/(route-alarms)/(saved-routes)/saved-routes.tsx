@@ -15,9 +15,24 @@ import {
 } from 'react-native';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const HEADER_HEIGHT = SCREEN_HEIGHT * 0.26;
+const HEADER_HEIGHT = SCREEN_HEIGHT * 0.18;
 
 const sampleRoutes = [
+  {
+    start: 'Home',
+    checkpoints: ['Checkpoint A', 'Checkpoint B'],
+    destination: 'Office',
+  },
+  {
+    start: 'Home',
+    checkpoints: ['Checkpoint A', 'Checkpoint B'],
+    destination: 'Office',
+  },
+  {
+    start: 'Home',
+    checkpoints: ['Checkpoint A', 'Checkpoint B'],
+    destination: 'Office',
+  },
   {
     start: 'Home',
     checkpoints: ['Checkpoint A', 'Checkpoint B'],
@@ -53,7 +68,7 @@ export default function ChooseScreen() {
 
   const handleEdit = () => {
     console.log('Edit:', sampleRoutes[selectedIndex!]);
-    router.push('//(edit-saved)/edit-map-screen?mode=create');
+    router.push('/(edit-saved)/edit-map-screen?mode=edit');
   };
 
   const handleDelete = () => {
@@ -116,7 +131,7 @@ export default function ChooseScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backCircle}>
                   <IconSymbol name="arrow.left.circle" size={20} color="#145E4D" />
                 </TouchableOpacity>
-                <ThemedText type="button" style={styles.backText}>Back</ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.backText}>Back</ThemedText>
               </View>
               <View style={styles.headerTitleContainer}>
                 <ThemedText type="titleLarge" style={[styles.headerTitle, { fontSize: 28 }]}>
@@ -132,7 +147,7 @@ export default function ChooseScreen() {
       />
 
       <View style={styles.container}>
-        <Text style={styles.instructionText}>📌 Hold a route to Edit or Delete</Text>
+        <Text style={styles.instructionText}>Hold a route to Edit or Delete</Text>
 
         {isLongPressed && (
           <TouchableWithoutFeedback
@@ -146,17 +161,13 @@ export default function ChooseScreen() {
         )}
 
         <View style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+          
+          <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
             {sampleRoutes.map((route, index) => (
               <Animated.View
                 key={index}
                 style={{
                   overflow: 'hidden',
-                  height: heightAnims[index].interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 126],
-                  }),
-                  opacity: heightAnims[index],
                   marginTop: 0,
                 }}
               >
@@ -176,18 +187,37 @@ export default function ChooseScreen() {
                     selectedIndex === index && styles.tripCardSelected,
                   ]}
                 >
-                  <View style={styles.tripTop}>
-                    <ThemedText type="defaultSemiBold">Starting point</ThemedText>
-                  </View>
-                  <View style={styles.checkpoints}>
+                  <View style={{position: 'relative'}}>
+                    <View style={styles.timelineLine} />
+
+                    {/* Starting Point */}
+                    <View style={styles.checkpoint}>
+                      <View style={styles.checkIconCircle} />
+                      <View style={styles.checkpointTextBox}>
+                        <ThemedText type="defaultSemiBold">Starting point</ThemedText>
+                      </View>
+                    </View>
+
+                    {/* Checkpoints */}
                     {route.checkpoints.map((cp, i) => (
-                      <ThemedText type="default" key={i}>|  {cp}</ThemedText>
+                      <View key={i} style={styles.checkpoints}>
+                        <View style={styles.line} />
+                        <View style={styles.checkpointDot} />
+                        <View style={styles.checkpointDetail}>
+                          <ThemedText type="default">{cp}</ThemedText>
+                        </View>
+                      </View>
                     ))}
-                  </View>
-                  <View style={styles.tripBottom}>
-                    <ThemedText type="defaultSemiBold">Destination</ThemedText>
-                    <View style={styles.radioDotOuter}>
-                      {selectedIndex === index && <View style={styles.radioDotInner} />}
+
+                    {/* Destination */}
+                    <View style={styles.checkpoint}>
+                      <View style={styles.finalPin} />
+                      <View style={styles.checkpointTextBox}>
+                        <ThemedText type="defaultSemiBold">Destination</ThemedText>
+                      </View>
+                      <View style={styles.radioDotOuter}>
+                        {selectedIndex === index && <View style={styles.radioDotInner} />}
+                      </View>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -218,20 +248,40 @@ export default function ChooseScreen() {
                 activeOpacity={0.95}
                 style={[styles.tripCard, styles.tripCardLongPressed]}
               >
-                <View style={styles.tripTop}>
-                  <ThemedText type="defaultSemiBold">Starting point</ThemedText>
-                </View>
-                <View style={styles.checkpoints}>
+                <View style={{ position: 'relative' }}>
+                  <View style={styles.timelineLine} />
+
+                  {/* Starting Point */}
+                  <View style={styles.checkpoint}>
+                    <View style={styles.checkIconCircle} />
+                    <View style={styles.checkpointTextBox}>
+                      <ThemedText type="defaultSemiBold">Starting point</ThemedText>
+                    </View>
+                  </View>
+
+                  {/* Checkpoints */}
                   {sampleRoutes[selectedIndex].checkpoints.map((cp, i) => (
-                    <ThemedText type="default" key={i}>|  {cp}</ThemedText>
+                    <View key={i} style={styles.checkpoints}>
+                      <View style={styles.line} />
+                      <View style={styles.checkpointDot} />
+                      <View style={styles.checkpointDetail}>
+                        <ThemedText type="default">{cp}</ThemedText>
+                      </View>
+                    </View>
                   ))}
-                </View>
-                <View style={styles.tripBottom}>
-                  <ThemedText type="defaultSemiBold">Destination</ThemedText>
-                  <View style={styles.radioDotOuter}>
-                    <View style={styles.radioDotInner} />
+
+                  {/* Destination */}
+                  <View style={styles.checkpoint}>
+                    <View style={styles.finalPin} />
+                    <View style={styles.checkpointTextBox}>
+                      <ThemedText type="defaultSemiBold">Destination</ThemedText>
+                    </View>
+                    <View style={styles.radioDotOuter}>
+                      <View style={styles.radioDotInner} />
+                    </View>
                   </View>
                 </View>
+
               </TouchableOpacity>
             </Animated.View>
           )}
@@ -279,7 +329,6 @@ const styles = StyleSheet.create({
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 55,
   },
   backCircle: {
     backgroundColor: '#ffffff',
@@ -292,7 +341,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   headerTitleContainer: {
-    marginTop: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -324,6 +372,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
     zIndex: 5,
   },
+  
   absoluteCard: {
     position: 'absolute',
     top: 180,
@@ -337,8 +386,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     marginHorizontal: 20,
-    gap: 8,
+    marginBottom: 20,
     backgroundColor: '#fff',
+
   },
   tripCardSelected: {
     backgroundColor: '#e6f5f2',
@@ -357,15 +407,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  checkpoints: {
-    marginLeft: 8,
-    gap: 2,
-  },
   tripBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+
+
   radioDotOuter: {
     width: 20,
     height: 20,
@@ -381,6 +429,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#155E54',
   },
+
+
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -409,6 +459,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+
+
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -435,5 +487,68 @@ const styles = StyleSheet.create({
     color: '#1C6E5C',
     fontWeight: '600',
     fontSize: 16,
+  },
+
+
+
+  timelineLine: {
+    position: 'absolute',
+    left: 7.3,
+    top:13,
+    bottom: 20,
+    width: 2,
+    backgroundColor: '#104E3B',
+    zIndex: -1,
+    },
+  line: {
+    position: 'absolute',
+    top: 9.8,          
+    left: 9,         
+    width: 11,        
+    height: 2,        
+    backgroundColor: '#104E3B',
+    zIndex: -1,
+  },
+  checkpoint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius:20,
+  },
+  checkpoints: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 5,
+    paddingLeft: 20,
+  },
+  checkpointDetail: {
+    flex: 1,
+  },
+  checkIconCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 4.5,
+    borderColor: '#104E3B',
+    marginRight: 12,
+  },
+  finalPin: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#104E3B',
+    marginRight: 12,
+  },
+  checkpointDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#104E3B',
+    marginRight: 12,
+    marginTop: 4,
+  },
+  checkpointTextBox: {
+    flex: 1,
+    marginBottom:5,
+    paddingRight: 10,
   },
 });

@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'FredokaOne',
     fontSize: 32,
-    lineHeight: 32,
+    lineHeight: 40,
   },
   titleLarge: {
     fontFamily: 'FredokaOne',

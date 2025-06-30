@@ -1,13 +1,14 @@
-import { router } from 'expo-router';
+import { ThemedText } from '@/components/ThemedText';
+import { Stack, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Button,
+  Alert,
+  Image,
+  ImageBackground,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Alert
+  View
 } from 'react-native';
 import { BASE_URL } from '@config';
 
@@ -43,7 +44,6 @@ export default function LoginScreen() {
         console.error('💥 Failed to parse JSON:', e);
         Alert.alert('⚠️ Server error: invalid response');
       }
-
     } catch (err) {
       console.error('💥 Login error:', err);
       Alert.alert('⚠️ Network or server error');
@@ -51,63 +51,104 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Dev Login</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity
-        style={styles.checkboxContainer}
-        onPress={() => setKeepLoggedIn(prev => !prev)}
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ImageBackground
+        source={require('@/assets/images/loginBG.jpg')} // ✅ Make sure path is correct
+        style={styles.background}
+        resizeMode="cover"
       >
-        <View style={[styles.checkbox, keepLoggedIn && styles.checkedBox]} />
-        <Text style={styles.checkboxLabel}>Keep me logged in</Text>
-      </TouchableOpacity>
+        <View style={styles.container}>
+          <Image
+            source={require('@/assets/images/Title.png')} 
+            style={styles.titleImage}
+            resizeMode="contain"/>
+          <ThemedText type="title" style={{ marginTop: 250 }}>
+            Login
+          </ThemedText>
+          <ThemedText type="default" style={{ marginBottom: 20 }}>
+            Securely login to your account.
+          </ThemedText>
 
-      <Button title="Login" onPress={handleLogin} />
+          <ThemedText type="titleSmall" style={styles.label}>Email</ThemedText>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+          />
 
-      <TouchableOpacity onPress={() => router.push('/register')}>
-        <Text style={styles.link}>Don't have an account? Register</Text>
-      </TouchableOpacity>
-    </View>
+          <ThemedText type="titleSmall" style={styles.label}>Password</ThemedText>
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setKeepLoggedIn(prev => !prev)}
+          >
+            <View style={[styles.checkbox, keepLoggedIn && styles.checkedBox]} />
+            <ThemedText
+              style={[styles.checkboxlabel, keepLoggedIn && styles.checkedBoxlabel]}
+              type="defaultSemiBold"
+            >
+              Keep me logged in
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
+            <ThemedText type="button" style={{ color: 'white' }}>LOGIN</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.link} onPress={() => router.push('/register')}>
+            <ThemedText type='default'>Not a member? </ThemedText>
+            <ThemedText type='defaultSemiBold'>Register</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ImageBackground>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   container: {
     padding: 24,
+    paddingBottom: 50,
     justifyContent: 'center',
-    flex: 1
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 24
+    flex: 1,
+    paddingHorizontal:40,
   },
   input: {
-    borderColor: '#aaa',
+    borderColor: '#E3E3E8',
     borderWidth: 1,
     padding: 10,
-    marginBottom: 12,
-    borderRadius: 6
+    marginBottom: 15,
+    borderRadius: 6,
+    fontFamily: 'Quicksand',
+    backgroundColor: 'white',
+  },
+  button: {
+    backgroundColor: '#145E4D',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 15,
+    elevation: 5,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    marginTop: 16,
+    marginBottom: 10,
   },
   checkbox: {
     width: 20,
@@ -115,17 +156,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#666',
     marginRight: 8,
-    borderRadius: 4
+    borderRadius: 4,
   },
   checkedBox: {
-    backgroundColor: '#007bff'
+    backgroundColor: '#A69DDA',
   },
-  checkboxLabel: {
-    fontSize: 16
+  checkboxlabel: {
+    color: '#AFAFAF',
+  },
+  checkedBoxlabel: {
+    color: '#2A3435',
   },
   link: {
+    flexDirection: 'row',
     marginTop: 16,
-    color: '#007bff',
-    textAlign: 'center'
-  }
+    alignSelf: 'center',
+  },
+  label: {
+    fontSize: 18,
+  },
+  titleImage: {
+    width: 300,
+    height: 200,
+    marginBottom: 50,
+    top: 70,
+    position: 'absolute',
+    alignSelf: 'center',
+  },
 });
