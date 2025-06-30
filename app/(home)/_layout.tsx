@@ -56,7 +56,6 @@ export default function TabLayout() {
               {/* Stroke layer */}
               <View
                 style={[
-                  styles.plusOutline,
                   {
                     backgroundColor: theme.tabBarBackground,
                   },

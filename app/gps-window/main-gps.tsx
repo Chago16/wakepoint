@@ -138,11 +138,12 @@ const styles = StyleSheet.create({
   },
   cancelTripButton: {
     position: 'absolute',
-    bottom: 130,
-    alignSelf: 'center',
+    top: 40,
+    right: 25,
+    alignSelf: 'flex-end',
     backgroundColor: '#D9534F', // red tone
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
     borderRadius: 30,
     elevation: 5,
     zIndex: 100,
