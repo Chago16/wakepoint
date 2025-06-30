@@ -3,47 +3,13 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Stack, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { BASE_URL } from '@config';
+import { handleRegister } from '@controllers/authController';
 
 export default function RegisterScreen() {
   const [user_name, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-
-  const handleRegister = async () => {
-    if (!user_name || !email || !password || !confirm) {
-      return Alert.alert('All fields required');
-    }
-
-    if (password !== confirm) {
-      return Alert.alert('Passwords do not match');
-    }
-
-    try {
-      console.log("📡 Sending request...");
-
-        const res = await fetch(`${BASE_URL}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_name, email, password })
-        });
-
-      console.log("📬 Got a response, waiting for JSON...");
-      const data = await res.json();
-      console.log("📦 API response data:", data);
-
-      if (res.ok) {
-        Alert.alert('✅ Registration successful');
-        router.push('/login');
-      } else {
-        Alert.alert('❌ ' + data.error);
-      }
-    } catch (err) {
-      console.error('💥 Register error:', err);
-      Alert.alert('⚠️ Failed to register');
-    }
-  };
 
   return (
     <>
@@ -98,7 +64,10 @@ export default function RegisterScreen() {
           onChangeText={setConfirm}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => handleRegister(user_name, email, password, confirm)}
+        >
           <ThemedText type="button" style={{ color: "white" }}>REGISTER</ThemedText>
         </TouchableOpacity>
       </View>
@@ -152,7 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 10,
   },
-  backCircle:{
+  backCircle: {
     backgroundColor: '#145E4D',
     borderRadius: 999,
     padding: 4,

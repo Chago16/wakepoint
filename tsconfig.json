@@ -4,6 +4,7 @@
     "strict": true,
     "baseUrl": ".",               
     "paths": {
+      "@controllers/*": ["backend/controllers/*"],
       "@utils/*": ["utils/*"],
       "@assets/*": ["assets/*"],
       "@config": ["config.js"],       // ✅ Add this line

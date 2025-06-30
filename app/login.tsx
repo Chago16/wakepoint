@@ -1,8 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
-import { Stack, router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   Image,
   ImageBackground,
   StyleSheet,
@@ -10,59 +9,27 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { BASE_URL } from '@config';
+import { handleLogin } from '@controllers/authController';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      return Alert.alert('All fields are required');
-    }
-
-    try {
-      const res = await fetch(`${BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      const text = await res.text();
-      console.log('💬 Raw response:', text);
-
-      try {
-        const data = JSON.parse(text);
-        if (res.ok) {
-          Alert.alert('✅ Login successful');
-          router.push('/(home)/dashboard');
-        } else {
-          Alert.alert('❌ ' + data.error);
-        }
-      } catch (e) {
-        console.error('💥 Failed to parse JSON:', e);
-        Alert.alert('⚠️ Server error: invalid response');
-      }
-    } catch (err) {
-      console.error('💥 Login error:', err);
-      Alert.alert('⚠️ Network or server error');
-    }
-  };
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ImageBackground
-        source={require('@/assets/images/loginBG.jpg')} // ✅ Make sure path is correct
+        source={require('@/assets/images/loginBG.jpg')}
         style={styles.background}
         resizeMode="cover"
       >
         <View style={styles.container}>
           <Image
-            source={require('@/assets/images/Title.png')} 
+            source={require('@/assets/images/Title.png')}
             style={styles.titleImage}
-            resizeMode="contain"/>
+            resizeMode="contain"
+          />
           <ThemedText type="title" style={{ marginTop: 250 }}>
             Login
           </ThemedText>
@@ -101,7 +68,7 @@ export default function LoginScreen() {
             </ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <TouchableOpacity style={styles.button} onPress={() => handleLogin(email, password)}>
             <ThemedText type="button" style={{ color: 'white' }}>LOGIN</ThemedText>
           </TouchableOpacity>
 
@@ -125,7 +92,7 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
     justifyContent: 'center',
     flex: 1,
-    paddingHorizontal:40,
+    paddingHorizontal: 40,
   },
   input: {
     borderColor: '#E3E3E8',
