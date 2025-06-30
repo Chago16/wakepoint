@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text, Alert } from 'react-native';
 import { router } from 'expo-router'; // for redirection after success
+import { BASE_URL } from '@config';
 
 export default function RegisterScreen() {
   const [user_name, setUsername] = useState('');
@@ -20,7 +21,7 @@ export default function RegisterScreen() {
     try {
         console.log("📡 Sending request...");
 
-        const res = await fetch('http://192.168.100.16:3000/auth/register', {
+        const res = await fetch(`${BASE_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_name, email, password })

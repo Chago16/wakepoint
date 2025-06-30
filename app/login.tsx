@@ -9,6 +9,7 @@ import {
   View,
   Alert
 } from 'react-native';
+import { BASE_URL } from '@config';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -16,40 +17,38 @@ export default function LoginScreen() {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
   const handleLogin = async () => {
-  if (!email || !password) {
-    return Alert.alert('All fields are required');
-  }
-
-  try {
-    const res = await fetch('http://192.168.100.16:3000/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    const text = await res.text();
-    console.log('💬 Raw response:', text);
-
-    // Try parse JSON after confirming it's valid
-    try {
-      const data = JSON.parse(text);
-      if (res.ok) {
-        Alert.alert('✅ Login successful');
-        router.push('/(home)/dashboard');
-      } else {
-        Alert.alert('❌ ' + data.error);
-      }
-    } catch (e) {
-      console.error('💥 Failed to parse JSON:', e);
-      Alert.alert('⚠️ Server error: invalid response');
+    if (!email || !password) {
+      return Alert.alert('All fields are required');
     }
 
-  } catch (err) {
-    console.error('💥 Login error:', err);
-    Alert.alert('⚠️ Network or server error');
-  }
-};
+    try {
+      const res = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
+      const text = await res.text();
+      console.log('💬 Raw response:', text);
+
+      try {
+        const data = JSON.parse(text);
+        if (res.ok) {
+          Alert.alert('✅ Login successful');
+          router.push('/(home)/dashboard');
+        } else {
+          Alert.alert('❌ ' + data.error);
+        }
+      } catch (e) {
+        console.error('💥 Failed to parse JSON:', e);
+        Alert.alert('⚠️ Server error: invalid response');
+      }
+
+    } catch (err) {
+      console.error('💥 Login error:', err);
+      Alert.alert('⚠️ Network or server error');
+    }
+  };
 
   return (
     <View style={styles.container}>
