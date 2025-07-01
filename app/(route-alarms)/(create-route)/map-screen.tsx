@@ -9,6 +9,8 @@ import { useTripPoints } from '@/hooks/useTripPoints';
 import { getAddressFromCoordinates } from '@/utils/geocodingService';
 import { requestLocationPermissions } from '@/utils/permissions';
 import BottomSheetSwitcher from './bottom-sheet-switcher';
+import { BASE_URL } from '@config';
+
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -97,7 +99,7 @@ const MapScreen = () => {
       });
 
       try {
-        const res = await fetch('http://192.168.100.16:3000/api/directions', {
+        const res = await fetch(`${BASE_URL}/api/directions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
