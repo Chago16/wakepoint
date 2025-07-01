@@ -35,8 +35,6 @@ interface Props {
 }
 
 
-
-
 const CreateTripSheet: React.FC<Props> = ({
   setMode,
   setFromCoords,
