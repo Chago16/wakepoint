@@ -48,7 +48,10 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "turf": "^3.0.14",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.6",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "expo-background-task": "~0.2.7",
+    "expo-audio": "~0.4.7"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
