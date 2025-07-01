@@ -8,7 +8,7 @@ import { TripMarkers } from '@/components/TripMarkers';
 import { useTripPoints } from '@/hooks/useTripPoints';
 import { getAddressFromCoordinates } from '@/utils/geocodingService';
 import { requestLocationPermissions } from '@/utils/permissions';
-import BottomSheetSwitcher from './bottom-sheet-switcher'; // (create-route)/bottom-sheet-switcher
+import BottomSheetSwitcher from './bottom-sheet-switcher';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -24,14 +24,15 @@ const MapScreen = () => {
   const [fromPlaceName, setFromPlaceName] = useState('');
   const [toPlaceName, setToPlaceName] = useState('');
 
-  // ✅ Shared trip state across both TripMarkers and BottomSheet
+  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null); // ✅ Route line state
+
   const {
     fromCoords,
     toCoords,
     setFromCoords,
     setToCoords,
     checkpoints,
-    setCheckpoints, // <-- include this!
+    setCheckpoints,
   } = useTripPoints();
 
   useEffect(() => {
@@ -41,10 +42,11 @@ const MapScreen = () => {
       setFromPlaceName('');
       setToPlaceName('');
       setActivePoint(null);
+      setRouteGeoJSON(null);
     };
   }, []);
 
-  // Re-request permission if app returns from background
+  // Re-request permission when app resumes
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
@@ -58,7 +60,7 @@ const MapScreen = () => {
     return () => subscription.remove();
   }, []);
 
-  // Initial location + permission request
+  // Initial location + permission
   useEffect(() => {
     (async () => {
       const granted = await requestLocationPermissions();
@@ -70,6 +72,58 @@ const MapScreen = () => {
       }
     })();
   }, []);
+
+  // ✅ Automatically fetch route when from and to are set
+  useEffect(() => {
+      if (fromCoords && toCoords) {
+        console.log('✅ Detected both from and to coords, fetching route...');
+        fetchSnappedRoute();
+      } else {
+        console.log('🟡 Missing coords:', { fromCoords, toCoords });
+      }
+    }, [fromCoords, toCoords, checkpoints]);
+
+  const fetchSnappedRoute = async () => {
+      if (!fromCoords || !toCoords) {
+        console.warn('⚠️ fetchSnappedRoute called without from/to coords.');
+        return;
+      }
+
+  const waypointCoords = checkpoints.map(cp => cp.coords);
+      console.log('📦 Fetching directions with:', {
+        from: fromCoords,
+        to: toCoords,
+        waypoints: waypointCoords,
+      });
+
+      try {
+        const res = await fetch('http://192.168.100.16:3000/api/directions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: fromCoords,
+            to: toCoords,
+            waypoints: waypointCoords,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!data?.geometry) {
+          console.error('❌ No geometry returned in API response:', data);
+          return;
+        }
+
+        setRouteGeoJSON({
+          type: 'Feature',
+          geometry: data.geometry,
+        });
+
+        console.log('✅ Route received and drawn!', data);
+      } catch (err) {
+        console.error('🔥 Error fetching route:', err);
+      }
+    };
 
   return (
     <>
@@ -85,7 +139,6 @@ const MapScreen = () => {
           onPress={async (e) => {
             const coords = e.geometry.coordinates as [number, number];
             const [lng, lat] = coords;
-
             const addressResult = await getAddressFromCoordinates(lat, lng);
 
             if (activePoint === 'from') {
@@ -111,7 +164,6 @@ const MapScreen = () => {
             console.log('Tapped coords:', coords);
             if (addressResult) console.log('Reverse address:', addressResult.address);
           }}
-
         >
           <Camera
             centerCoordinate={centerCoordinate}
@@ -120,15 +172,27 @@ const MapScreen = () => {
             animationDuration={1000}
           />
 
-          {/* ✅ Show all trip pins including checkpoints */}
           <TripMarkers fromCoords={fromCoords} toCoords={toCoords} checkpoints={checkpoints} />
+
+          {routeGeoJSON && (
+            <Mapbox.ShapeSource id="routeSource" shape={routeGeoJSON}>
+              <Mapbox.LineLayer
+                id="routeLine"
+                style={{
+                  lineColor: '#00d2ff',
+                  lineWidth: 5,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </Mapbox.ShapeSource>
+          )}
 
           {mapReady && locationGranted && (
             <Mapbox.UserLocation visible={true} showsUserHeadingIndicator={true} />
           )}
         </Mapbox.MapView>
 
-        {/* ✅ Bottom sheet now receives the same state */}
         <BottomSheetSwitcher
           mode={mode}
           setMode={setMode}
@@ -142,10 +206,9 @@ const MapScreen = () => {
           setToPlaceName={setToPlaceName}
           checkpoints={checkpoints}
           setCheckpoints={setCheckpoints}
-          activeCheckpointId={activeCheckpointId}             // ✅ Add this
-          setActiveCheckpointId={setActiveCheckpointId}       // ✅ And this
+          activeCheckpointId={activeCheckpointId}
+          setActiveCheckpointId={setActiveCheckpointId}
         />
-
       </View>
     </>
   );
