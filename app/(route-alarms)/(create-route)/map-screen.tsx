@@ -181,7 +181,7 @@ const MapScreen = () => {
               <Mapbox.LineLayer
                 id="routeLine"
                 style={{
-                  lineColor: '#00d2ff',
+                  lineColor: '#ADCE7D',
                   lineWidth: 5,
                   lineCap: 'round',
                   lineJoin: 'round',
