@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/ThemedText'; // Adjust path if needed
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -12,34 +13,61 @@ export function ETAStatusBar({
   eta?: string;
 }) {
   return (
-    <View style={styles.container}>
-      <View style={styles.leftInfo}>
-        <View style={styles.row}>
-          <IconSymbol name="clock" size={24} color="#fff" />
-          <View style={styles.textGroup}>
-            <Text style={styles.mainText}>{timeLeft}</Text>
-            <Text style={styles.subText}>Time Left</Text>
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        <View style={styles.leftInfo}>
+          <View style={styles.row}>
+            <IconSymbol name="clock" size={24} color="#fff" />
+            <View style={styles.textGroup}>
+              <Text style={styles.mainText}>{timeLeft}</Text>
+              <Text style={styles.subText}>Time Left</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <IconSymbol name="location" size={24} color="#fff" />
+            <View style={styles.textGroup}>
+              <Text style={styles.mainText}>{distance}</Text>
+              <Text style={styles.subText}>Away</Text>
+            </View>
           </View>
         </View>
-        <View style={styles.row}>
-          <IconSymbol name="location" size={24} color="#fff" />
-          <View style={styles.textGroup}>
-            <Text style={styles.mainText}>{distance}</Text>
-            <Text style={styles.subText}>Away</Text>
-          </View>
+
+        <View style={styles.etaBox}>
+          <Text style={styles.etaTime}>{eta}</Text>
+          <Text style={styles.etaLabel}>Estimated Time Of Arrival</Text>
         </View>
       </View>
 
-      <View style={styles.etaBox}>
-        <Text style={styles.etaTime}>{eta}</Text>
-        <Text style={styles.etaLabel}>Estimated Time Of Arrival</Text>
+      <View style={styles.progressBarWrapper}>
+        <View style={styles.progressBarBackground}>
+          <View style={[styles.progressBarFill, { width: '45%' }]} />
+        </View>
+      </View>
+
+      <View style={styles.justifyContainer}>
+        <View style={styles.endpointLeft}>
+          <ThemedText
+            type="default"
+            numberOfLines={2}
+            style={styles.endpointText}>
+            Origin
+          </ThemedText>
+        </View>
+        <View style={styles.endpointRight}>
+          <ThemedText
+            type="default"
+            numberOfLines={2}
+            style={[styles.endpointText, { textAlign: 'right' }]}>
+            Destination
+          </ThemedText>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     position: 'absolute',
     bottom: 10,
     left: 10,
@@ -47,10 +75,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#004d40',
     borderRadius: 20,
     padding: 12,
+    elevation: 4,
+  },
+  container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 4,
   },
   leftInfo: {
     gap: 12,
@@ -90,5 +120,41 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#444',
     textAlign: 'center',
+  },
+  progressBarWrapper: {
+    marginTop: 12,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 20,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 20,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#A69DDA',
+    borderRadius: 20,
+  },
+  justifyContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 8,
+  },
+  endpointLeft: {
+    maxWidth: '48%',
+    minHeight: 36,
+    justifyContent: 'flex-start',
+  },
+  endpointRight: {
+    maxWidth: '48%',
+    minHeight: 36,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  endpointText: {
+    flexWrap: 'wrap',
+    lineHeight: 18,
+    color: 'white',
   },
 });

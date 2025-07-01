@@ -35,7 +35,7 @@ export default function HistoryScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Protruding Title */}
         <View style={styles.titleWrapper}>
-          <ThemedText type="title">Trip History</ThemedText>
+          <ThemedText type="titleSmall">Trip History</ThemedText>
         </View>
 
         {/* Route Cards */}
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 0,
     padding: 16,
     gap: 16,
-    elevation: 0,
+    elevation: 3,
     paddingTop: 20,
     marginTop: 15,
   },

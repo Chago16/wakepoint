@@ -8,9 +8,8 @@ import { TripMarkers } from '@/components/TripMarkers';
 import { useTripPoints } from '@/hooks/useTripPoints';
 import { getAddressFromCoordinates } from '@/utils/geocodingService';
 import { requestLocationPermissions } from '@/utils/permissions';
-import BottomSheetSwitcher from './bottom-sheet-switcher';
 import { BASE_URL } from '@config';
-
+import BottomSheetSwitcher from './bottom-sheet-switcher';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -26,7 +25,7 @@ const MapScreen = () => {
   const [fromPlaceName, setFromPlaceName] = useState('');
   const [toPlaceName, setToPlaceName] = useState('');
 
-  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null); // ✅ Route line state
+  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
 
   const {
     fromCoords,
@@ -36,6 +35,11 @@ const MapScreen = () => {
     checkpoints,
     setCheckpoints,
   } = useTripPoints();
+
+  // 🆕 Alarm state added
+  const [alarmSoundIndex, setAlarmSoundIndex] = useState(0);
+  const [notifyEarlierIndex, setNotifyEarlierIndex] = useState(0);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
 
   useEffect(() => {
     return () => {
@@ -48,7 +52,6 @@ const MapScreen = () => {
     };
   }, []);
 
-  // Re-request permission when app resumes
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
@@ -62,7 +65,6 @@ const MapScreen = () => {
     return () => subscription.remove();
   }, []);
 
-  // Initial location + permission
   useEffect(() => {
     (async () => {
       const granted = await requestLocationPermissions();
@@ -75,57 +77,56 @@ const MapScreen = () => {
     })();
   }, []);
 
-  // ✅ Automatically fetch route when from and to are set
   useEffect(() => {
-      if (fromCoords && toCoords) {
-        console.log('✅ Detected both from and to coords, fetching route...');
-        fetchSnappedRoute();
-      } else {
-        console.log('🟡 Missing coords:', { fromCoords, toCoords });
-      }
-    }, [fromCoords, toCoords, checkpoints]);
+    if (fromCoords && toCoords) {
+      console.log('✅ Detected both from and to coords, fetching route...');
+      fetchSnappedRoute();
+    } else {
+      console.log('🟡 Missing coords:', { fromCoords, toCoords });
+    }
+  }, [fromCoords, toCoords, checkpoints]);
 
   const fetchSnappedRoute = async () => {
-      if (!fromCoords || !toCoords) {
-        console.warn('⚠️ fetchSnappedRoute called without from/to coords.');
+    if (!fromCoords || !toCoords) {
+      console.warn('⚠️ fetchSnappedRoute called without from/to coords.');
+      return;
+    }
+
+    const waypointCoords = checkpoints.map(cp => cp.coords);
+    console.log('📦 Fetching directions with:', {
+      from: fromCoords,
+      to: toCoords,
+      waypoints: waypointCoords,
+    });
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/directions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: fromCoords,
+          to: toCoords,
+          waypoints: waypointCoords,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data?.geometry) {
+        console.error('❌ No geometry returned in API response:', data);
         return;
       }
 
-  const waypointCoords = checkpoints.map(cp => cp.coords);
-      console.log('📦 Fetching directions with:', {
-        from: fromCoords,
-        to: toCoords,
-        waypoints: waypointCoords,
+      setRouteGeoJSON({
+        type: 'Feature',
+        geometry: data.geometry,
       });
 
-      try {
-        const res = await fetch(`${BASE_URL}/api/directions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: fromCoords,
-            to: toCoords,
-            waypoints: waypointCoords,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!data?.geometry) {
-          console.error('❌ No geometry returned in API response:', data);
-          return;
-        }
-
-        setRouteGeoJSON({
-          type: 'Feature',
-          geometry: data.geometry,
-        });
-
-        console.log('✅ Route received and drawn!', data);
-      } catch (err) {
-        console.error('🔥 Error fetching route:', err);
-      }
-    };
+      console.log('✅ Route received and drawn!', data);
+    } catch (err) {
+      console.error('🔥 Error fetching route:', err);
+    }
+  };
 
   return (
     <>
@@ -174,8 +175,6 @@ const MapScreen = () => {
             animationDuration={1000}
           />
 
-          <TripMarkers fromCoords={fromCoords} toCoords={toCoords} checkpoints={checkpoints} />
-
           {routeGeoJSON && (
             <Mapbox.ShapeSource id="routeSource" shape={routeGeoJSON}>
               <Mapbox.LineLayer
@@ -189,6 +188,8 @@ const MapScreen = () => {
               />
             </Mapbox.ShapeSource>
           )}
+
+          <TripMarkers fromCoords={fromCoords} toCoords={toCoords} checkpoints={checkpoints} />
 
           {mapReady && locationGranted && (
             <Mapbox.UserLocation visible={true} showsUserHeadingIndicator={true} />
@@ -210,6 +211,12 @@ const MapScreen = () => {
           setCheckpoints={setCheckpoints}
           activeCheckpointId={activeCheckpointId}
           setActiveCheckpointId={setActiveCheckpointId}
+          alarmSoundIndex={alarmSoundIndex}
+          setAlarmSoundIndex={setAlarmSoundIndex}
+          notifyEarlierIndex={notifyEarlierIndex}
+          setNotifyEarlierIndex={setNotifyEarlierIndex}
+          vibrationEnabled={vibrationEnabled}
+          setVibrationEnabled={setVibrationEnabled}
         />
       </View>
     </>

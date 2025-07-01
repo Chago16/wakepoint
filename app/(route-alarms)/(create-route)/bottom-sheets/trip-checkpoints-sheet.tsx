@@ -170,7 +170,7 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
             ))}
 
 
-            {checkpoints.length < 5 && (
+            {checkpoints.length < 20 && (
               <TouchableOpacity
                 style={{ marginVertical: 10, alignSelf: 'flex-start' }}
                 onPress={() => {

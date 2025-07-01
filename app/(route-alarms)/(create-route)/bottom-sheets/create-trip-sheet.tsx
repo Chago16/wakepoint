@@ -1,9 +1,8 @@
 import { SearchBox } from '@/components/SearchBox';
 import { ThemedText } from '@/components/ThemedText';
-import { getAddressFromCoordinates, getCoordinatesFromAddress } from '@/utils/geocodingService';
 import { WINDOW_HEIGHT } from '@/utils/index';
 import { router } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   Animated,
   PanResponder,
@@ -15,79 +14,67 @@ import {
   View,
 } from 'react-native';
 
-
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.70;
 const MID_HEIGHT = WINDOW_HEIGHT * 0.51;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
-const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT , 0];
-
+const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT, 0];
 
 interface Props {
   setMode: (mode: 'create' | 'checkpoints' | 'alarm') => void;
-  setFromCoords: (coords: [number, number]) => void;
-  setToCoords: (coords: [number, number]) => void;
+
   activePoint: 'from' | 'to' | null;
   setActivePoint: (point: 'from' | 'to' | null) => void;
+
   fromPlaceName: string;
   setFromPlaceName: (name: string) => void;
+  fromCoords: [number, number] | null;
+  setFromCoords: (coords: [number, number]) => void;
+
   toPlaceName: string;
   setToPlaceName: (name: string) => void;
+  toCoords: [number, number] | null;
+  setToCoords: (coords: [number, number]) => void;
+
+  alarmSoundIndex: number;
+  setAlarmSoundIndex: (index: number) => void;
+
+  vibrationEnabled: boolean;
+  setVibrationEnabled: (value: boolean) => void;
+
+  notifyEarlierIndex: number;
+  setNotifyEarlierIndex: (index: number) => void;
 }
 
+const alarmSounds = ['Alarm 1', 'Alarm 2', 'Alarm 3'];
+const notifyDistances = [300, 500, 700];
 
-const CreateTripSheet: React.FC<Props> = ({
+export const CreateTripSheet: React.FC<Props> = ({
   setMode,
-  setFromCoords,
-  setToCoords,
   activePoint,
   setActivePoint,
   fromPlaceName,
   setFromPlaceName,
+  fromCoords,
+  setFromCoords,
   toPlaceName,
   setToPlaceName,
+  toCoords,
+  setToCoords,
+  alarmSoundIndex,
+  setAlarmSoundIndex,
+  vibrationEnabled,
+  setVibrationEnabled,
+  notifyEarlierIndex,
+  setNotifyEarlierIndex,
 }) => {
-
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
   const currentPosition = useRef(1);
-
-  const [soundEnabled, setSoundEnabled] = React.useState(false);
-  const [vibrationEnabled, setVibrationEnabled] = React.useState(false);
-  const [notifyEarlierEnabled, setNotifyEarlierEnabled] = React.useState(false);
-
-  const [placeName, setPlaceName] = React.useState('');
-  const [coordinates, setCoordinates] = React.useState<[number, number] | null>(null);
-  const [reverseAddress, setReverseAddress] = React.useState('');
-
-  const [alarmSoundIndex, setAlarmSoundIndex] = React.useState(0);
-  const [notifyEarlierIndex, setNotifyEarlierIndex] = React.useState(0);
-
-  const alarmSounds = ['Alarm 1', 'Alarm 2', 'Alarm 3'];
-  const notifyDistances = [300, 500, 700];
 
   const cycleLeft = (index: number, list: any[]) =>
     index === 0 ? list.length - 1 : index - 1;
 
   const cycleRight = (index: number, list: any[]) =>
     index === list.length - 1 ? 0 : index + 1;
-
-
-
-  useEffect(() => {
-  (async () => {
-    const result = await getCoordinatesFromAddress('Polytechnic University of the Philippines, Manila, Philippines');
-    if (result) {
-      setPlaceName(result.place);           // ✅ This sets the placeName state
-      setCoordinates(result.coords);        // (optional: store coords)
-
-      const [lng, lat] = result.coords;
-      const addressResult = await getAddressFromCoordinates(lat, lng);
-      if (addressResult) {
-        setReverseAddress(addressResult.address); // ✅ This sets reverse address
-      }
-    }
-  })();
-}, []);
-
 
   const panResponder = useRef(
     PanResponder.create({
@@ -165,15 +152,16 @@ const CreateTripSheet: React.FC<Props> = ({
             We will wake you up. Don’t worry!
           </ThemedText>
 
-          <View style={{ position: 'relative'}}>
+          <View style={{ position: 'relative' }}>
             <View style={styles.timelineLine} />
 
+            {/* FROM checkpoint */}
             <View style={styles.checkpoint}>
               <View style={styles.checkIconCircle} />
               <View
                 style={[
                   styles.fromContainer,
-                  activePoint === 'from' && { backgroundColor: '#CFC8F3'},
+                  activePoint === 'from' && { backgroundColor: '#CFC8F3' },
                 ]}
                 onTouchEnd={() => setActivePoint(activePoint === 'from' ? null : 'from')}
               >
@@ -186,21 +174,19 @@ const CreateTripSheet: React.FC<Props> = ({
                     setFromPlaceName(place.name);
                   }}
                 />
-
-
               </View>
             </View>
 
+            {/* TO checkpoint */}
             <View style={styles.checkpoint}>
               <View style={styles.finalPin} />
               <View
                 style={[
                   styles.destinationContainer,
-                  activePoint === 'to' && { backgroundColor: '#CFC8F3'},
+                  activePoint === 'to' && { backgroundColor: '#CFC8F3' },
                 ]}
                 onTouchEnd={() => setActivePoint(activePoint === 'to' ? null : 'to')}
               >
-
                 <ThemedText type="option">DESTINATION</ThemedText>
                 <SearchBox
                   value={toPlaceName}
@@ -210,13 +196,9 @@ const CreateTripSheet: React.FC<Props> = ({
                     setToPlaceName(place.name);
                   }}
                 />
-
-
-
               </View>
             </View>
           </View>
-          
 
           <View style={styles.separator} />
 
@@ -224,8 +206,7 @@ const CreateTripSheet: React.FC<Props> = ({
             Alarm Settings
           </ThemedText>
 
-          <View style={[styles.settings]}>
-
+          <View style={styles.settings}>
             {/* Alarm Sound */}
             <View style={[styles.settingRow, { marginVertical: 8 }]}>
               <View>
@@ -261,7 +242,7 @@ const CreateTripSheet: React.FC<Props> = ({
 
             <View style={styles.separator} />
 
-            {/* Notify me earlier */}
+            {/* Notify Earlier */}
             <View style={[styles.settingRow, { marginVertical: 8 }]}>
               <View>
                 <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
@@ -278,20 +259,17 @@ const CreateTripSheet: React.FC<Props> = ({
                 </TouchableOpacity>
               </View>
             </View>
-
           </View>
-          
 
-          <View style={{ height: 40 }} /> {/* Spacer for buttons */}
+          <View style={{ height: 40 }} />
         </ScrollView>
       </Animated.View>
-
 
       <View style={styles.separator} />
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={styles.cancelBtn}
-          onPress={() => router.back()} // You can also add a modal confirm here
+          onPress={() => router.back()}
         >
           <ThemedText type="button" style={{ color: '#104E3B' }}>
             Cancel
@@ -309,8 +287,6 @@ const CreateTripSheet: React.FC<Props> = ({
     </>
   );
 };
-
-export default CreateTripSheet;
 
 const styles = StyleSheet.create({
   sheetContent: {
@@ -411,12 +387,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   timelineLine: {
-  position: 'absolute',
-  left: 7.3,
-  top:20,
-  bottom: 65,
-  width: 2,
-  backgroundColor: '#8CC63F',
-  zIndex: -1,
+    position: 'absolute',
+    left: 7.3,
+    top: 20,
+    bottom: 65,
+    width: 2,
+    backgroundColor: '#8CC63F',
+    zIndex: -1,
   },
 });
