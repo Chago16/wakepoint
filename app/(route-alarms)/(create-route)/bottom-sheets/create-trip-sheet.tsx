@@ -58,6 +58,18 @@ const CreateTripSheet: React.FC<Props> = ({
   const [coordinates, setCoordinates] = React.useState<[number, number] | null>(null);
   const [reverseAddress, setReverseAddress] = React.useState('');
 
+  const [alarmSoundIndex, setAlarmSoundIndex] = React.useState(0);
+  const [notifyEarlierIndex, setNotifyEarlierIndex] = React.useState(0);
+
+  const alarmSounds = ['Alarm 1', 'Alarm 2', 'Alarm 3'];
+  const notifyDistances = [300, 500, 700];
+
+  const cycleLeft = (index: number, list: any[]) =>
+    index === 0 ? list.length - 1 : index - 1;
+
+  const cycleRight = (index: number, list: any[]) =>
+    index === list.length - 1 ? 0 : index + 1;
+
 
 
   useEffect(() => {
@@ -213,28 +225,61 @@ const CreateTripSheet: React.FC<Props> = ({
           </ThemedText>
 
           <View style={[styles.settings]}>
-              {[ 
-              { label: 'Alarm sound', subtitle: 'Default tone', value: soundEnabled, onChange: setSoundEnabled },
-              { label: 'Vibration', subtitle: 'Silent alert', value: vibrationEnabled, onChange: setVibrationEnabled },
-              { label: 'Notify me earlier', subtitle: '300m alert', value: notifyEarlierEnabled, onChange: setNotifyEarlierEnabled },
-            ].map((setting, idx) => (
-              <React.Fragment key={idx}>
-                <View style={[styles.settingRow, { marginVertical: 8 }]}>
-                  <View>
-                    <ThemedText type="defaultSemiBold">{setting.label}</ThemedText>
-                    <ThemedText type="default">{setting.subtitle}</ThemedText>
-                  </View>
-                  <Switch
-                    value={setting.value}
-                    onValueChange={setting.onChange}
-                    trackColor={{ false: '#E0E0E0', true: '#104E3B' }}
-                    thumbColor={setting.value ? '#fff' : '#d3d3d3'}
-                  />
-                </View>
-                {idx < 2 && <View style={styles.separator} />}
-              </React.Fragment>
-            ))}
-          </View >
+
+            {/* Alarm Sound */}
+            <View style={[styles.settingRow, { marginVertical: 8 }]}>
+              <View>
+                <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
+              </View>
+              <View style={styles.pickerRow}>
+                <TouchableOpacity onPress={() => setAlarmSoundIndex(cycleLeft(alarmSoundIndex, alarmSounds))}>
+                  <ThemedText type="default">{'<'}</ThemedText>
+                </TouchableOpacity>
+                <ThemedText type="default" style={{ marginHorizontal: 12 }}>
+                  {alarmSounds[alarmSoundIndex]}
+                </ThemedText>
+                <TouchableOpacity onPress={() => setAlarmSoundIndex(cycleRight(alarmSoundIndex, alarmSounds))}>
+                  <ThemedText type="default">{'>'}</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.separator} />
+
+            {/* Vibration */}
+            <View style={[styles.settingRow, { marginVertical: 8 }]}>
+              <View>
+                <ThemedText type="defaultSemiBold">Vibration</ThemedText>
+              </View>
+              <Switch
+                value={vibrationEnabled}
+                onValueChange={setVibrationEnabled}
+                trackColor={{ false: '#E0E0E0', true: '#104E3B' }}
+                thumbColor={vibrationEnabled ? '#fff' : '#d3d3d3'}
+              />
+            </View>
+
+            <View style={styles.separator} />
+
+            {/* Notify me earlier */}
+            <View style={[styles.settingRow, { marginVertical: 8 }]}>
+              <View>
+                <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
+              </View>
+              <View style={styles.pickerRow}>
+                <TouchableOpacity onPress={() => setNotifyEarlierIndex(cycleLeft(notifyEarlierIndex, notifyDistances))}>
+                  <ThemedText type="default">{'<'}</ThemedText>
+                </TouchableOpacity>
+                <ThemedText type="default" style={{ marginHorizontal: 12 }}>
+                  {notifyDistances[notifyEarlierIndex]} m
+                </ThemedText>
+                <TouchableOpacity onPress={() => setNotifyEarlierIndex(cycleRight(notifyEarlierIndex, notifyDistances))}>
+                  <ThemedText type="default">{'>'}</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+          </View>
           
 
           <View style={{ height: 40 }} /> {/* Spacer for buttons */}
@@ -319,6 +364,13 @@ const styles = StyleSheet.create({
   },
   settings: {
     marginBottom: 25,
+  },
+  pickerRow: {
+    width: 100,
+    marginRight: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   buttonRow: {
     flexDirection: 'row',

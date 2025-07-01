@@ -1,9 +1,11 @@
 const express = require('express');
 const connectDB = require('./db');
 require('dotenv').config();
+
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const mapboxRoutes = require('./routes/mapboxRoutes');
+const directionsRoutes = require('./routes/directions'); // ✅ NEW
 
 const app = express();
 const PORT = 3000;
@@ -14,6 +16,7 @@ app.use(express.json()); // middleware
 app.use('/auth', authRoutes); // routes
 app.use('/api', userRoutes);
 app.use('/api/mapbox', mapboxRoutes);
+app.use('/api', directionsRoutes); // ✅ REGISTERED
 
 app.get('/', (req, res) => {
   res.send('WakePoint Backend Server ✅');
