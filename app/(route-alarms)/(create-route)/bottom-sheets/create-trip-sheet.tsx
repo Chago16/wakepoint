@@ -1,7 +1,9 @@
+import { SearchBox } from '@/components/SearchBox';
 import { ThemedText } from '@/components/ThemedText';
+import { getAddressFromCoordinates, getCoordinatesFromAddress } from '@/utils/geocodingService';
 import { WINDOW_HEIGHT } from '@/utils/index';
 import { router } from 'expo-router';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   PanResponder,
@@ -13,22 +15,69 @@ import {
   View,
 } from 'react-native';
 
+
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.70;
 const MID_HEIGHT = WINDOW_HEIGHT * 0.51;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT , 0];
 
+
 interface Props {
   setMode: (mode: 'create' | 'checkpoints' | 'alarm') => void;
+  setFromCoords: (coords: [number, number]) => void;
+  setToCoords: (coords: [number, number]) => void;
+  activePoint: 'from' | 'to' | null;
+  setActivePoint: (point: 'from' | 'to' | null) => void;
+  fromPlaceName: string;
+  setFromPlaceName: (name: string) => void;
+  toPlaceName: string;
+  setToPlaceName: (name: string) => void;
 }
 
-const CreateTripSheet: React.FC<Props> = ({ setMode }) => {
+
+
+
+const CreateTripSheet: React.FC<Props> = ({
+  setMode,
+  setFromCoords,
+  setToCoords,
+  activePoint,
+  setActivePoint,
+  fromPlaceName,
+  setFromPlaceName,
+  toPlaceName,
+  setToPlaceName,
+}) => {
+
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
   const currentPosition = useRef(1);
 
   const [soundEnabled, setSoundEnabled] = React.useState(false);
   const [vibrationEnabled, setVibrationEnabled] = React.useState(false);
   const [notifyEarlierEnabled, setNotifyEarlierEnabled] = React.useState(false);
+
+  const [placeName, setPlaceName] = React.useState('');
+  const [coordinates, setCoordinates] = React.useState<[number, number] | null>(null);
+  const [reverseAddress, setReverseAddress] = React.useState('');
+
+
+
+  useEffect(() => {
+  (async () => {
+    const result = await getCoordinatesFromAddress('Polytechnic University of the Philippines, Manila, Philippines');
+    if (result) {
+      setPlaceName(result.place);           // ✅ This sets the placeName state
+      setCoordinates(result.coords);        // (optional: store coords)
+
+      const [lng, lat] = result.coords;
+      const addressResult = await getAddressFromCoordinates(lat, lng);
+      if (addressResult) {
+        setReverseAddress(addressResult.address); // ✅ This sets reverse address
+      }
+    }
+  })();
+}, []);
+
 
   const panResponder = useRef(
     PanResponder.create({
@@ -111,19 +160,49 @@ const CreateTripSheet: React.FC<Props> = ({ setMode }) => {
 
             <View style={styles.checkpoint}>
               <View style={styles.checkIconCircle} />
-              <View style={styles.checkpointTextBox}>
+              <View
+                style={[
+                  styles.fromContainer,
+                  activePoint === 'from' && { backgroundColor: '#CFC8F3'},
+                ]}
+                onTouchEnd={() => setActivePoint(activePoint === 'from' ? null : 'from')}
+              >
                 <ThemedText type="option">FROM</ThemedText>
-                <ThemedText type="defaultSemiBold">
-                  From
-                </ThemedText>
+                <SearchBox
+                  value={fromPlaceName}
+                  onChangeText={setFromPlaceName}
+                  onSelect={(place) => {
+                    setFromCoords(place.coords);
+                    setFromPlaceName(place.name);
+                  }}
+                />
+
+
               </View>
             </View>
 
             <View style={styles.checkpoint}>
               <View style={styles.finalPin} />
-              <View style={styles.checkpointTextBox}>
+              <View
+                style={[
+                  styles.destinationContainer,
+                  activePoint === 'to' && { backgroundColor: '#CFC8F3'},
+                ]}
+                onTouchEnd={() => setActivePoint(activePoint === 'to' ? null : 'to')}
+              >
+
                 <ThemedText type="option">DESTINATION</ThemedText>
-                <ThemedText type="defaultSemiBold">Destination</ThemedText>
+                <SearchBox
+                  value={toPlaceName}
+                  onChangeText={setToPlaceName}
+                  onSelect={(place) => {
+                    setToCoords(place.coords);
+                    setToPlaceName(place.name);
+                  }}
+                />
+
+
+
               </View>
             </View>
           </View>
@@ -218,7 +297,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginRight: 12,
   },
-  checkpointTextBox: {
+  fromContainer: {
+    backgroundColor: '#F0F0F0',
+    padding: 10,
+    borderRadius: 6,
+    flex: 1,
+  },
+  destinationContainer: {
     backgroundColor: '#F0F0F0',
     padding: 10,
     borderRadius: 6,
@@ -279,7 +364,7 @@ const styles = StyleSheet.create({
   position: 'absolute',
   left: 7.3,
   top:20,
-  bottom: 55,
+  bottom: 70,
   width: 2,
   backgroundColor: '#8CC63F',
   zIndex: -1,

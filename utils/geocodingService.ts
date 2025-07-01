@@ -1,4 +1,4 @@
-import { BASE_URL } from '@/config'; // or '@/utils/config' if you put BASE_URL there
+import { BASE_URL } from '@/config'; // or '@/utils/config'
 
 export const getCoordinatesFromAddress = async (query: string) => {
   try {
@@ -17,5 +17,22 @@ export const getAddressFromCoordinates = async (lat: number, lng: number) => {
   } catch (err) {
     console.error('Reverse geocoding error:', err);
     return null;
+  }
+};
+
+// 🔍 New: Search locations (autocomplete-style)
+export const searchLocations = async (query: string) => {
+  if (!query || query.length < 3) return [];
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/mapbox/search?query=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error(`Search request failed: ${res.status}`);
+    
+    const data = await res.json();
+    // Expected: [{ id, name, coords }]
+    return data;
+  } catch (err) {
+    console.error('Search location error:', err);
+    return [];
   }
 };
