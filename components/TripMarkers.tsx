@@ -1,6 +1,7 @@
 import Mapbox from '@rnmapbox/maps';
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 type Coords = [number, number];
 
@@ -16,46 +17,42 @@ type TripMarkersProps = {
   checkpoints: Checkpoint[];
 };
 
-const PinIcon = ({ type, index }: { type: 'from' | 'to' | 'checkpoint'; index?: number }) => {
-  const getColor = () => {
+const PinIcon = ({ type }: { type: 'from' | 'to' | 'checkpoint' }) => {
+  const getIconName = () => {
     switch (type) {
-      case 'from':
-        return '#8CC63F'; // yellow green
-      case 'to':
-        return '#104E3B'; // dark green
-      case 'checkpoint':
-      default:
-        return '#2C7865'; // teal
+      case 'from': return 'location';
+      case 'to': return 'flag';
+      case 'checkpoint': return 'checkpoint';
     }
   };
 
-  const label = type === 'from' ? 'F' : type === 'to' ? 'D' : index?.toString() ?? '?';
+  const getColor = () => {
+    switch (type) {
+      case 'from': return '#8CC63F';
+      case 'to': return '#104E3B';
+      case 'checkpoint': return '#2C7865';
+    }
+  };
 
   return (
     <View
       style={{
-        backgroundColor: getColor(),
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: 'white',
+        padding: 6,
+        borderRadius: 20,
+        elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.3,
-        shadowRadius: 1,
-        elevation: 2,
+        shadowRadius: 2,
       }}
     >
-      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>{label}</Text>
+      <IconSymbol name={getIconName()} color={getColor()} size={20} />
     </View>
   );
 };
 
 export const TripMarkers: React.FC<TripMarkersProps> = ({ fromCoords, toCoords, checkpoints }) => {
-  console.log('Rendering TripMarkers with checkpoints:', checkpoints);
-  console.log('TripMarkers - checkpoints with coords only:', checkpoints.filter(cp => cp.coords));
-
   useEffect(() => {
     console.log('Updated TripMarkers props:', checkpoints);
   }, [checkpoints]);
@@ -72,14 +69,10 @@ export const TripMarkers: React.FC<TripMarkersProps> = ({ fromCoords, toCoords, 
           <PinIcon type="to" />
         </Mapbox.PointAnnotation>
       )}
-      {checkpoints?.map((cp, index) =>
+      {checkpoints.map((cp) =>
         cp.coords ? (
-          <Mapbox.PointAnnotation
-            key={cp.id}
-            id={`checkpoint-${cp.id}`}
-            coordinate={cp.coords}
-          >
-            <PinIcon type="checkpoint" index={index + 1} />
+          <Mapbox.PointAnnotation key={cp.id} id={`checkpoint-${cp.id}`} coordinate={cp.coords}>
+            <PinIcon type="checkpoint" />
           </Mapbox.PointAnnotation>
         ) : null
       )}
