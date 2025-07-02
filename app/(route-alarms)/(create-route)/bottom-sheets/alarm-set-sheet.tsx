@@ -1,7 +1,9 @@
 import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
+import { saveRoute } from '@/utils/savedRoutesAPI';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   Animated,
   Image,
@@ -13,8 +15,6 @@ import {
   View,
 } from 'react-native';
 import uuid from 'react-native-uuid';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { saveRoute } from '@/utils/savedRoutesAPI';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.55;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.55;
@@ -48,18 +48,13 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
 }) => {
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
   const currentPosition = useRef(1);
-
   const savedRouteId = useRef(uuid.v4());
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        animatedValue.extractOffset();
-      },
-      onPanResponderMove: (_, gesture) => {
-        animatedValue.setValue(gesture.dy);
-      },
+      onPanResponderGrant: () => animatedValue.extractOffset(),
+      onPanResponderMove: (_, gesture) => animatedValue.setValue(gesture.dy),
       onPanResponderRelease: () => {
         animatedValue.flattenOffset();
         animatedValue.stopAnimation((newY) => {
@@ -91,8 +86,13 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
   const alarmSounds = ['alarm1', 'alarm2', 'alarm3'];
   const notifyOptions = [300, 500, 700]; // meters
 
-  const saveTripData = async () => {
+  const saveTripData = async (): Promise<boolean> => {
     try {
+      if (!fromCoords || !toCoords) {
+        console.warn('⚠️ Missing coordinates. Not saving trip.');
+        return false;
+      }
+
       const userId = await AsyncStorage.getItem('user_id');
       if (!userId) throw new Error('User ID not found in storage');
 
@@ -101,18 +101,18 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
         saved_route_id: savedRouteId.current as string,
         date_modified: new Date().toISOString(),
         from: {
-          lat: fromCoords?.[0] || 0,
-          lng: fromCoords?.[1] || 0,
+          lat: fromCoords[1],
+          lng: fromCoords[0],
         },
         from_name: fromPlaceName,
         destination: {
-          lat: toCoords?.[0] || 0,
-          lng: toCoords?.[1] || 0,
+          lat: toCoords[1],
+          lng: toCoords[0],
         },
         destination_name: toPlaceName,
         checkpoints: checkpoints.map((cp) => ({
-          lat: cp.coords?.[0] || 0,
-          lng: cp.coords?.[1] || 0,
+          lat: cp.coords?.[1] || 0,
+          lng: cp.coords?.[0] || 0,
         })),
         alarm_sound: alarmSounds[alarmSoundIndex] ?? 'alarm1',
         vibration: vibrationEnabled,
@@ -121,14 +121,31 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
 
       await saveRoute(route);
       console.log('✅ Trip data saved');
+      return true;
     } catch (err) {
       console.error('❌ Error saving trip data:', err);
+      return false;
     }
   };
 
-  useEffect(() => {
-    saveTripData();
-  }, []);
+  const handleUseAndSave = async () => {
+    const success = await saveTripData();
+    if (success) {
+      router.replace({
+        pathname: '/gps-window/main-gps',
+        params: {
+          savedRouteId: savedRouteId.current as string,
+        },
+      });
+    }
+  };
+
+  const handleSaveForLater = async () => {
+    const success = await saveTripData();
+    if (success) {
+      router.replace('/dashboard');
+    }
+  };
 
   return (
     <>
@@ -155,25 +172,12 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
       </Animated.View>
 
       <View style={styles.buttonCol}>
-        <TouchableOpacity
-          style={styles.useBtn}
-          onPress={() =>
-            router.replace({
-              pathname: '/gps-window/main-gps',
-              params: {
-                savedRouteId: savedRouteId.current as string,
-              },
-            })
-          }
-        >
+        <TouchableOpacity style={styles.useBtn} onPress={handleUseAndSave}>
           <ThemedText type="button" style={{ color: 'white' }}>
             Use and Save the Alarm
           </ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.saveBtn}
-          onPress={() => router.replace('/dashboard')}
-        >
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSaveForLater}>
           <ThemedText type="button" style={{ color: '#104E3B' }}>
             Save for Later
           </ThemedText>
@@ -184,6 +188,7 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
 };
 
 export default AlarmSetSheet;
+
 
 const styles = StyleSheet.create({
   sheetContent: {

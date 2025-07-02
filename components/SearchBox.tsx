@@ -21,6 +21,7 @@ type SearchBoxProps = {
   onChangeText: (text: string) => void;
   onSelect: (location: LocationResult) => void;
   placeholder?: string;
+  onFocus?: () => void; // ✅ Add this line
 };
 
 export const SearchBox: React.FC<SearchBoxProps> = ({

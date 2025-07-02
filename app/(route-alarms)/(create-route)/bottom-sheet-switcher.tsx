@@ -40,6 +40,8 @@ interface Props {
   setActiveCheckpointId: (id: string | null) => void;
 }
 
+
+
 const BottomSheetSwitcher: React.FC<Props> = ({
   mode,
   setMode,
@@ -67,6 +69,16 @@ const BottomSheetSwitcher: React.FC<Props> = ({
   activeCheckpointId,
   setActiveCheckpointId,
 }) => {
+
+  console.log('📦 BottomSheetSwitcher props:', {
+  mode,
+  fromCoords,
+  toCoords,
+  fromPlaceName,
+  toPlaceName,
+  checkpoints,
+  });
+
   switch (mode) {
     case 'create':
       return (
@@ -123,6 +135,7 @@ const BottomSheetSwitcher: React.FC<Props> = ({
           toCoords={toCoords}
           checkpoints={checkpoints}
         />
+        
       );
 
     default:
