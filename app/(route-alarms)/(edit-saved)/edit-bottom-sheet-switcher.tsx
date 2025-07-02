@@ -1,7 +1,7 @@
 import React from 'react';
 
-import AlamUpdateSheet from './edit-bottom-sheets/edit-alarm-set-sheet';
-import TripCheckpointsSheet from './edit-bottom-sheets/edit-checkpoints-sheet';
+import AlarmUpdateSheet from './edit-bottom-sheets/edit-alarm-set-sheet';
+import EditCheckpointsSheet from './edit-bottom-sheets/edit-checkpoints-sheet';
 import { EditTripSheet } from './edit-bottom-sheets/edit-trip-sheet';
 
 type Mode = 'edit' | 'checkpoints' | 'alarm';
@@ -40,6 +40,8 @@ interface Props {
   setActiveCheckpointId: (id: string | null) => void;
 }
 
+
+
 const BottomSheetSwitcher: React.FC<Props> = ({
   mode,
   setMode,
@@ -67,6 +69,16 @@ const BottomSheetSwitcher: React.FC<Props> = ({
   activeCheckpointId,
   setActiveCheckpointId,
 }) => {
+
+  console.log('📦 BottomSheetSwitcher props:', {
+  mode,
+  fromCoords,
+  toCoords,
+  fromPlaceName,
+  toPlaceName,
+  checkpoints,
+  });
+
   switch (mode) {
     case 'edit':
       return (
@@ -97,7 +109,7 @@ const BottomSheetSwitcher: React.FC<Props> = ({
 
     case 'checkpoints':
       return (
-        <TripCheckpointsSheet
+        <EditCheckpointsSheet
           setMode={setMode}
 
           checkpoints={checkpoints}
@@ -113,7 +125,7 @@ const BottomSheetSwitcher: React.FC<Props> = ({
 
     case 'alarm':
        return (
-        <AlamUpdateSheet
+        <AlarmUpdateSheet
           alarmSoundIndex={alarmSoundIndex}
           vibrationEnabled={vibrationEnabled}
           notifyEarlierIndex={notifyEarlierIndex}
@@ -123,6 +135,7 @@ const BottomSheetSwitcher: React.FC<Props> = ({
           toCoords={toCoords}
           checkpoints={checkpoints}
         />
+        
       );
 
     default:

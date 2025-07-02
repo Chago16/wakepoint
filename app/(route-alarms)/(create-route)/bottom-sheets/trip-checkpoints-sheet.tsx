@@ -197,9 +197,9 @@ const TripCheckpointsSheet: React.FC<Props> = ({
                   <ThemedText
                     type="defaultSemiBold"
                     style={{
-                      marginTop: 4,
-                      marginLeft: 80,
-                      marginBottom: 10,
+                      marginTop: 0,
+                      marginLeft: 60,
+                      marginBottom: 30,
                       color: 'black',
                       fontSize: 13,
                     }}

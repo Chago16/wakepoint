@@ -35,6 +35,7 @@ const MapScreen = () => {
     setToCoords,
     checkpoints,
     setCheckpoints,
+    resetTrip, // <-- here
   } = useTripPoints();
 
   // 🆕 Alarm state added
@@ -44,14 +45,14 @@ const MapScreen = () => {
 
   useEffect(() => {
     return () => {
-      setFromCoords(null);
-      setToCoords(null);
+      resetTrip(); // new reset method
       setFromPlaceName('');
       setToPlaceName('');
       setActivePoint(null);
       setRouteGeoJSON(null);
     };
   }, []);
+
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
@@ -203,8 +204,14 @@ const MapScreen = () => {
         <BottomSheetSwitcher
           mode={mode}
           setMode={setMode}
+
+          // ✅ These were missing
+          fromCoords={fromCoords}
+          toCoords={toCoords}
+
           setFromCoords={setFromCoords}
           setToCoords={setToCoords}
+
           activePoint={activePoint}
           setActivePoint={setActivePoint}
           fromPlaceName={fromPlaceName}

@@ -62,8 +62,8 @@ export const CreateTripSheet: React.FC<Props> = ({
   setNotifyEarlierIndex,
 }) => {
   const animatedValue = useRef(new Animated.Value(POSITIONS[0])).current;
-  const currentPosition = useRef(0); // start at max
-  const searchJustFocusedRef = useRef(false); // prevent flickering
+  const currentPosition = useRef(0);
+  const searchJustFocusedRef = useRef(false);
 
   const cycleLeft = (index: number, list: any[]) =>
     index === 0 ? list.length - 1 : index - 1;
@@ -72,17 +72,9 @@ export const CreateTripSheet: React.FC<Props> = ({
     index === list.length - 1 ? 0 : index + 1;
 
   const snapToMax = () => {
-    currentPosition.current = 0;
+    currentPosition.current = 2;
     Animated.spring(animatedValue, {
-      toValue: POSITIONS[0],
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const snapToMin = () => {
-    currentPosition.current = 1;
-    Animated.spring(animatedValue, {
-      toValue: POSITIONS[1],
+      toValue: POSITIONS[2],
       useNativeDriver: true,
     }).start();
   };
@@ -177,9 +169,6 @@ export const CreateTripSheet: React.FC<Props> = ({
                 ]}
                 onTouchEnd={() => {
                   setActivePoint(activePoint === 'from' ? null : 'from');
-                  if (!searchJustFocusedRef.current) {
-                    snapToMin();
-                  }
                 }}
               >
                 <ThemedText type="option">FROM</ThemedText>
@@ -193,9 +182,6 @@ export const CreateTripSheet: React.FC<Props> = ({
                   onFocus={() => {
                     searchJustFocusedRef.current = true;
                     snapToMax();
-                    setTimeout(() => {
-                      searchJustFocusedRef.current = false;
-                    }, 100);
                   }}
                 />
               </View>
@@ -210,9 +196,6 @@ export const CreateTripSheet: React.FC<Props> = ({
                 ]}
                 onTouchEnd={() => {
                   setActivePoint(activePoint === 'to' ? null : 'to');
-                  if (!searchJustFocusedRef.current) {
-                    snapToMin();
-                  }
                 }}
               >
                 <ThemedText type="option">DESTINATION</ThemedText>
@@ -226,9 +209,6 @@ export const CreateTripSheet: React.FC<Props> = ({
                   onFocus={() => {
                     searchJustFocusedRef.current = true;
                     snapToMax();
-                    setTimeout(() => {
-                      searchJustFocusedRef.current = false;
-                    }, 100);
                   }}
                 />
               </View>
@@ -300,14 +280,14 @@ export const CreateTripSheet: React.FC<Props> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.useAlarmBtn, {opacity: isNextDisabled ? 0.5 : 1 }]}
+          style={[styles.useAlarmBtn, { opacity: isNextDisabled ? 0.5 : 1 }]}
           disabled={isNextDisabled}
           onPress={() => {
             setActivePoint(null);
             setMode('checkpoints');
           }}
         >
-          <ThemedText type="button" style={{ color: 'white'}}>
+          <ThemedText type="button" style={{ color: 'white' }}>
             Next
           </ThemedText>
         </TouchableOpacity>
@@ -321,6 +301,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 0,
     paddingBottom: 40,
+  },
+  scrollArea: {
+    flex: 1,
   },
   checkpoint: {
     flexDirection: 'row',

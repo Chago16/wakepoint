@@ -1,7 +1,9 @@
 import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
+import { saveRoute } from '@/utils/savedRoutesAPI';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   Animated,
   Image,
@@ -12,12 +14,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import uuid from 'react-native-uuid';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.55;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.55;
-const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0]; // Only two states
+const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0];
 
-interface AlamUpdateSheetProps {
+interface AlarmUpdateSheetProps {
   alarmSoundIndex: number;
   vibrationEnabled: boolean;
   notifyEarlierIndex: number;
@@ -31,11 +34,9 @@ interface AlamUpdateSheetProps {
     coords: [number, number] | null;
     search: string;
   }[];
-  savedRouteId: string;
-  userId: string;
 }
 
-const AlamUpdateSheet: React.FC<AlamUpdateSheetProps> = ({
+const AlarmUpdateSheet: React.FC<AlarmUpdateSheetProps> = ({
   alarmSoundIndex,
   vibrationEnabled,
   notifyEarlierIndex,
@@ -44,21 +45,16 @@ const AlamUpdateSheet: React.FC<AlamUpdateSheetProps> = ({
   fromCoords,
   toCoords,
   checkpoints,
-  savedRouteId,
-  userId,
 }) => {
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
   const currentPosition = useRef(1);
+  const savedRouteId = useRef(uuid.v4());
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        animatedValue.extractOffset();
-      },
-      onPanResponderMove: (_, gesture) => {
-        animatedValue.setValue(gesture.dy);
-      },
+      onPanResponderGrant: () => animatedValue.extractOffset(),
+      onPanResponderMove: (_, gesture) => animatedValue.setValue(gesture.dy),
       onPanResponderRelease: () => {
         animatedValue.flattenOffset();
         animatedValue.stopAnimation((newY) => {
@@ -87,33 +83,69 @@ const AlamUpdateSheet: React.FC<AlamUpdateSheetProps> = ({
     ],
   };
 
-  const updatedTripData = {
-    user_id: userId,
-    saved_route_id: savedRouteId,
-    date_modified: new Date().toISOString(),
-    from: fromCoords,
-    from_name: fromPlaceName,
-    destination: toCoords,
-    destination_name: toPlaceName,
-    checkpoints: checkpoints.map(cp => ({
-      id: cp.id,
-      name: cp.name,
-      coords: cp.coords,
-      search: cp.search,
-    })),
-    alarm_sound: alarmSoundIndex,
-    vibration: vibrationEnabled,
-    notif_early: notifyEarlierIndex,
+  const alarmSounds = ['alarm1', 'alarm2', 'alarm3'];
+  const notifyOptions = [300, 500, 700]; // meters
+
+  const saveTripData = async (): Promise<boolean> => {
+    try {
+      if (!fromCoords || !toCoords) {
+        console.warn('⚠️ Missing coordinates. Not saving trip.');
+        return false;
+      }
+
+      const userId = await AsyncStorage.getItem('user_id');
+      if (!userId) throw new Error('User ID not found in storage');
+
+      const route = {
+        user_id: userId,
+        saved_route_id: savedRouteId.current as string,
+        date_modified: new Date().toISOString(),
+        from: {
+          lat: fromCoords[1],
+          lng: fromCoords[0],
+        },
+        from_name: fromPlaceName,
+        destination: {
+          lat: toCoords[1],
+          lng: toCoords[0],
+        },
+        destination_name: toPlaceName,
+        checkpoints: checkpoints.map((cp) => ({
+          lat: cp.coords?.[1] || 0,
+          lng: cp.coords?.[0] || 0,
+        })),
+        alarm_sound: alarmSounds[alarmSoundIndex] ?? 'alarm1',
+        vibration: vibrationEnabled,
+        notif_early: notifyOptions[notifyEarlierIndex] ?? 300,
+      };
+
+      await saveRoute(route);
+      console.log('✅ Trip data saved');
+      return true;
+    } catch (err) {
+      console.error('❌ Error saving trip data:', err);
+      return false;
+    }
   };
 
-  // 🧠 Auto-update trip data when this component mounts
-  useEffect(() => {
-    const updateTripData = async () => {
-      console.log('🔄 Updating trip data to database (mock):', updatedTripData);
-      // await fetch('/api/updateTrip', { method: 'PUT', body: JSON.stringify(updatedTripData) });
-    };
-    updateTripData();
-  }, []);
+  const handleUseAndSave = async () => {
+    const success = await saveTripData();
+    if (success) {
+      router.replace({
+        pathname: '/gps-window/main-gps',
+        params: {
+          savedRouteId: savedRouteId.current as string,
+        },
+      });
+    }
+  };
+
+  const handleSaveForLater = async () => {
+    const success = await saveTripData();
+    if (success) {
+      router.replace('/dashboard');
+    }
+  };
 
   return (
     <>
@@ -140,26 +172,12 @@ const AlamUpdateSheet: React.FC<AlamUpdateSheetProps> = ({
       </Animated.View>
 
       <View style={styles.buttonCol}>
-        <TouchableOpacity
-          style={styles.useBtn}
-          onPress={() =>
-            router.replace({
-              pathname: '/gps-window/main-gps',
-              params: {
-                userId,
-                savedRouteId,
-              },
-            })
-          }
-        >
+        <TouchableOpacity style={styles.useBtn} onPress={handleUseAndSave}>
           <ThemedText type="button" style={{ color: 'white' }}>
             Use the Updated Alarm
           </ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.saveBtn}
-          onPress={() => router.replace('/dashboard')}
-        >
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSaveForLater}>
           <ThemedText type="button" style={{ color: '#104E3B' }}>
             Save for Later
           </ThemedText>
@@ -169,7 +187,8 @@ const AlamUpdateSheet: React.FC<AlamUpdateSheetProps> = ({
   );
 };
 
-export default AlamUpdateSheet;
+export default AlarmUpdateSheet;
+
 
 const styles = StyleSheet.create({
   sheetContent: {
@@ -205,9 +224,9 @@ const styles = StyleSheet.create({
   },
   bottomSheet: {
     position: 'absolute',
-    bottom: 0,
     width: '100%',
     height: MAX_HEIGHT,
+    bottom: MIN_HEIGHT - MAX_HEIGHT,
     backgroundColor: 'white',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
