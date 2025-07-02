@@ -10,7 +10,7 @@ export const getCoordinatesFromAddress = async (query: string) => {
   }
 };
 
-export const getAddressFromCoordinates = async (lng: number, lat: number) => {
+export const getAddressFromCoordinates = async (lat: number, lng: number) => {
   try {
     const res = await fetch(`${BASE_URL}/api/mapbox/reverse-geocode?lat=${lat}&lng=${lng}`);
     return await res.json(); // { address }
