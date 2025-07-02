@@ -44,7 +44,7 @@ export default function ChooseScreen() {
           const checkpointNames = await Promise.all(
             route.checkpoints.map(async (cp: any) => {
               console.log('🧭 Checkpoint:', cp);
-              const reverse = await getAddressFromCoordinates(cp.lng, cp.lat);
+              const reverse = await getAddressFromCoordinates(cp.lat, cp.lng);
               return reverse?.address || 'Unnamed';
             })
           );
