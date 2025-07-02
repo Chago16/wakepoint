@@ -12,11 +12,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import uuid from 'react-native-uuid'; // ✅ Updated to use react-native-uuid
+import uuid from 'react-native-uuid';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveRoute } from '@/utils/savedRoutesAPI';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.55;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.55;
-const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0]; // Only two states
+const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0];
 
 interface AlarmSetSheetProps {
   alarmSoundIndex: number;
@@ -33,8 +35,6 @@ interface AlarmSetSheetProps {
     search: string;
   }[];
 }
-
-const userId = 'mock-user-id'; // 🔐 placeholder for now
 
 const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
   alarmSoundIndex,
@@ -88,31 +88,45 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
     ],
   };
 
-  const preparedTripData = {
-    user_id: userId,
-    saved_route_id: savedRouteId.current,
-    date_modified: new Date().toISOString(),
-    from: fromCoords,
-    from_name: fromPlaceName,
-    destination: toCoords,
-    destination_name: toPlaceName,
-    checkpoints: checkpoints.map(cp => ({
-      id: cp.id,
-      name: cp.name,
-      coords: cp.coords,
-      search: cp.search,
-    })),
-    alarm_sound: alarmSoundIndex,
-    vibration: vibrationEnabled,
-    notif_early: notifyEarlierIndex,
+  const alarmSounds = ['alarm1', 'alarm2', 'alarm3'];
+  const notifyOptions = [300, 500, 700]; // meters
+
+  const saveTripData = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('user_id');
+      if (!userId) throw new Error('User ID not found in storage');
+
+      const route = {
+        user_id: userId,
+        saved_route_id: savedRouteId.current as string,
+        date_modified: new Date().toISOString(),
+        from: {
+          lat: fromCoords?.[0] || 0,
+          lng: fromCoords?.[1] || 0,
+        },
+        from_name: fromPlaceName,
+        destination: {
+          lat: toCoords?.[0] || 0,
+          lng: toCoords?.[1] || 0,
+        },
+        destination_name: toPlaceName,
+        checkpoints: checkpoints.map((cp) => ({
+          lat: cp.coords?.[0] || 0,
+          lng: cp.coords?.[1] || 0,
+        })),
+        alarm_sound: alarmSounds[alarmSoundIndex] ?? 'alarm1',
+        vibration: vibrationEnabled,
+        notif_early: notifyOptions[notifyEarlierIndex] ?? 300,
+      };
+
+      await saveRoute(route);
+      console.log('✅ Trip data saved');
+    } catch (err) {
+      console.error('❌ Error saving trip data:', err);
+    }
   };
 
-  // 🧠 Auto-save trip data when this component mounts
   useEffect(() => {
-    const saveTripData = async () => {
-      console.log('🗃️ Saving trip data to database (mock):', preparedTripData);
-      // await fetch('/api/saveTrip', { method: 'POST', body: JSON.stringify(preparedTripData) });
-    };
     saveTripData();
   }, []);
 
@@ -147,8 +161,7 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
             router.replace({
               pathname: '/gps-window/main-gps',
               params: {
-                userId,
-                savedRouteId: savedRouteId.current,
+                savedRouteId: savedRouteId.current as string,
               },
             })
           }
