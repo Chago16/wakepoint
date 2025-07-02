@@ -1,16 +1,14 @@
-import { useState } from 'react';
+// hooks/useTripPoints.ts
+import { create } from 'zustand';
 
 type Coords = [number, number] | null;
 
-// Inside useTripPoints.ts
 export type Checkpoint = {
   id: string;
   name: string;
-  coords: [number, number] | null;
+  coords: Coords;
   search: string;
-}
-
-
+};
 
 interface TripPointsStore {
   fromCoords: Coords;
@@ -18,20 +16,43 @@ interface TripPointsStore {
   setFromCoords: (coords: Coords) => void;
   setToCoords: (coords: Coords) => void;
   checkpoints: Checkpoint[];
-  setCheckpoints: React.Dispatch<React.SetStateAction<Checkpoint[]>>;
+  setCheckpoints: (checkpoints: Checkpoint[]) => void;
+  resetTrip: () => void;
 }
 
-export const useTripPoints = (): TripPointsStore => {
-  const [fromCoords, setFromCoords] = useState<Coords>(null);
-  const [toCoords, setToCoords] = useState<Coords>(null);
-  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+// Zustand store creation
+export const useTripPoints = create<TripPointsStore>((set, get) => ({
+  fromCoords: null,
+  toCoords: null,
+  setFromCoords: (coords) => {
+    console.log('🟢 setFromCoords:', coords);
+    set({ fromCoords: coords });
 
-  return {
-    fromCoords,
-    toCoords,
-    setFromCoords,
-    setToCoords,
-    checkpoints,
-    setCheckpoints,
-  };
-};
+    // Confirm change after a tick
+    setTimeout(() => {
+      console.log('🧠 Current fromCoords in store:', get().fromCoords);
+    }, 0);
+  },
+  setToCoords: (coords) => {
+    console.log('🔵 setToCoords:', coords);
+    set({ toCoords: coords });
+
+    // Confirm change after a tick
+    setTimeout(() => {
+      console.log('🧠 Current toCoords in store:', get().toCoords);
+    }, 0);
+  },
+  checkpoints: [],
+  setCheckpoints: (checkpoints) => {
+    console.log('📍 Updating checkpoints:', checkpoints);
+    set({ checkpoints });
+  },
+  resetTrip: () => {
+    console.log('🧹 Resetting trip state');
+    set({
+      fromCoords: null,
+      toCoords: null,
+      checkpoints: [],
+    });
+  },
+}));

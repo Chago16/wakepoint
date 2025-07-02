@@ -28,12 +28,19 @@ interface Props {
   setCheckpoints: (checkpoints: Checkpoint[]) => void;
   activeCheckpointId: string | null;
   setActiveCheckpointId: (id: string | null) => void;
-  fromLocation: string; // ✅ add this
-  toLocation: string;   // ✅ add this
+  fromLocation: string;
+  toLocation: string;
 }
 
-
-const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckpoints, activeCheckpointId, setActiveCheckpointId, fromLocation, toLocation }) => {
+const TripCheckpointsSheet: React.FC<Props> = ({
+  setMode,
+  checkpoints,
+  setCheckpoints,
+  activeCheckpointId,
+  setActiveCheckpointId,
+  fromLocation,
+  toLocation,
+}) => {
   const [isSheetUp, setIsSheetUp] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
@@ -46,6 +53,20 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
     });
     return () => animatedValue.removeListener(id);
   }, []);
+
+  useEffect(() => {
+    if (checkpoints.length === 0) {
+      const newId = Date.now().toString();
+      setCheckpoints([{ id: newId, name: '', coords: null, search: '' }]);
+      setActiveCheckpointId(newId);
+    }
+  }, []);
+
+  const lastCheckpoint = checkpoints[checkpoints.length - 1];
+  const canAddCheckpoint =
+  checkpoints.length === 0 ||
+  (lastCheckpoint.search.trim() !== '' && lastCheckpoint.coords !== null);
+
 
   const panResponder = useRef(
     PanResponder.create({
@@ -131,7 +152,7 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
                 <View
                   style={[
                     styles.checkpointDetail,
-                    activeCheckpointId === cp.id && { backgroundColor: '#CFC8F3' }, // ✅ highlight just the inner box
+                    activeCheckpointId === cp.id && { backgroundColor: '#CFC8F3' },
                   ]}
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -162,16 +183,41 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
               </TouchableOpacity>
             ))}
 
-
             {checkpoints.length < 20 && (
               <TouchableOpacity
-                style={{ marginVertical: 10, alignSelf: 'flex-start' }}
+                style={{ marginVertical: 10, alignSelf: 'flex-start', opacity: canAddCheckpoint ? 1 : 0.3 }}
+                disabled={!canAddCheckpoint}
                 onPress={() => {
                   const newId = Date.now().toString();
                   setCheckpoints([...checkpoints, { id: newId, name: '', coords: null, search: '' }]);
+                  setActiveCheckpointId(newId);
                 }}
               >
-                <ThemedText type="defaultSemiBold" style={{ color: '#2C7865', marginLeft: 110, marginTop: -10,}}>+ Add Checkpoint</ThemedText>
+                {checkpoints.length === 1 && (
+                  <ThemedText
+                    type="defaultSemiBold"
+                    style={{
+                      marginTop: 4,
+                      marginLeft: 80,
+                      marginBottom: 10,
+                      color: 'black',
+                      fontSize: 13,
+                    }}
+                  >
+                    If you don’t want any checkpoint, you can delete the initial one.
+                  </ThemedText>
+                )}
+
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={{
+                    color: canAddCheckpoint ? '#2C7865' : '#999',
+                    marginLeft: 110,
+                    marginTop: -10,
+                  }}
+                >
+                  + Add Checkpoint
+                </ThemedText>
               </TouchableOpacity>
             )}
 
@@ -190,15 +236,24 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
 
       <View style={styles.separator} />
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={() => setMode('create')}>
+        <TouchableOpacity style={styles.cancelBtn} onPress={() => {
+          setActiveCheckpointId(null);
+          setMode('create');
+        }}>
           <ThemedText type="button" style={{ color: '#104E3B' }}>Back</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.useAlarmBtn}
+          style={[
+            styles.useAlarmBtn,
+            { opacity: !canAddCheckpoint ? 0.5 : 1 },
+          ]}
           onPress={() => {
+            if (!canAddCheckpoint) return; // 🔒 block if invalid
+
             if (!isSheetUp) {
               setShowModal(true);
+              setActiveCheckpointId(null);
             } else {
               currentPosition.current = 1;
               Animated.spring(animatedValue, {
@@ -208,11 +263,13 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
               setIsSheetUp(true);
             }
           }}
+          disabled={!canAddCheckpoint}
         >
           <ThemedText type="button" style={{ color: 'white' }}>
             {isSheetUp ? 'Next' : 'Save Alarm'}
           </ThemedText>
         </TouchableOpacity>
+
       </View>
 
       {showModal && (
@@ -230,10 +287,15 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
 
               <TouchableOpacity
                 onPress={() => {
+                  if (!canAddCheckpoint) return;
                   setShowModal(false);
                   setMode('alarm');
                 }}
-                style={styles.modalConfirm}
+                style={[
+                  styles.modalConfirm,
+                  { backgroundColor: canAddCheckpoint ? '#104E3B' : '#ccc' },
+                ]}
+                disabled={!canAddCheckpoint}
               >
                 <ThemedText type="button" style={{ color: 'white' }}>Confirm</ThemedText>
               </TouchableOpacity>
@@ -246,6 +308,7 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
 };
 
 export default TripCheckpointsSheet;
+
 
 
 const styles = StyleSheet.create({

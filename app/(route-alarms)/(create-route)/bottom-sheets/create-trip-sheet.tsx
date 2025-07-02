@@ -21,26 +21,20 @@ const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT, 0];
 
 interface Props {
   setMode: (mode: 'create' | 'checkpoints' | 'alarm') => void;
-
   activePoint: 'from' | 'to' | null;
   setActivePoint: (point: 'from' | 'to' | null) => void;
-
   fromPlaceName: string;
   setFromPlaceName: (name: string) => void;
   fromCoords: [number, number] | null;
   setFromCoords: (coords: [number, number]) => void;
-
   toPlaceName: string;
   setToPlaceName: (name: string) => void;
   toCoords: [number, number] | null;
   setToCoords: (coords: [number, number]) => void;
-
   alarmSoundIndex: number;
   setAlarmSoundIndex: (index: number) => void;
-
   vibrationEnabled: boolean;
   setVibrationEnabled: (value: boolean) => void;
-
   notifyEarlierIndex: number;
   setNotifyEarlierIndex: (index: number) => void;
 }
@@ -67,14 +61,31 @@ export const CreateTripSheet: React.FC<Props> = ({
   notifyEarlierIndex,
   setNotifyEarlierIndex,
 }) => {
-  const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
-  const currentPosition = useRef(1);
+  const animatedValue = useRef(new Animated.Value(POSITIONS[0])).current;
+  const currentPosition = useRef(0); // start at max
+  const searchJustFocusedRef = useRef(false); // prevent flickering
 
   const cycleLeft = (index: number, list: any[]) =>
     index === 0 ? list.length - 1 : index - 1;
 
   const cycleRight = (index: number, list: any[]) =>
     index === list.length - 1 ? 0 : index + 1;
+
+  const snapToMax = () => {
+    currentPosition.current = 0;
+    Animated.spring(animatedValue, {
+      toValue: POSITIONS[0],
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const snapToMin = () => {
+    currentPosition.current = 1;
+    Animated.spring(animatedValue, {
+      toValue: POSITIONS[1],
+      useNativeDriver: true,
+    }).start();
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -135,6 +146,8 @@ export const CreateTripSheet: React.FC<Props> = ({
     ],
   };
 
+  const isNextDisabled = !fromCoords || !toCoords;
+
   return (
     <>
       <Animated.View style={bottomSheetStyle}>
@@ -155,7 +168,6 @@ export const CreateTripSheet: React.FC<Props> = ({
           <View style={{ position: 'relative' }}>
             <View style={styles.timelineLine} />
 
-            {/* FROM checkpoint */}
             <View style={styles.checkpoint}>
               <View style={styles.checkIconCircle} />
               <View
@@ -163,7 +175,12 @@ export const CreateTripSheet: React.FC<Props> = ({
                   styles.fromContainer,
                   activePoint === 'from' && { backgroundColor: '#CFC8F3' },
                 ]}
-                onTouchEnd={() => setActivePoint(activePoint === 'from' ? null : 'from')}
+                onTouchEnd={() => {
+                  setActivePoint(activePoint === 'from' ? null : 'from');
+                  if (!searchJustFocusedRef.current) {
+                    snapToMin();
+                  }
+                }}
               >
                 <ThemedText type="option">FROM</ThemedText>
                 <SearchBox
@@ -173,11 +190,17 @@ export const CreateTripSheet: React.FC<Props> = ({
                     setFromCoords(place.coords);
                     setFromPlaceName(place.name);
                   }}
+                  onFocus={() => {
+                    searchJustFocusedRef.current = true;
+                    snapToMax();
+                    setTimeout(() => {
+                      searchJustFocusedRef.current = false;
+                    }, 100);
+                  }}
                 />
               </View>
             </View>
 
-            {/* TO checkpoint */}
             <View style={styles.checkpoint}>
               <View style={styles.finalPin} />
               <View
@@ -185,7 +208,12 @@ export const CreateTripSheet: React.FC<Props> = ({
                   styles.destinationContainer,
                   activePoint === 'to' && { backgroundColor: '#CFC8F3' },
                 ]}
-                onTouchEnd={() => setActivePoint(activePoint === 'to' ? null : 'to')}
+                onTouchEnd={() => {
+                  setActivePoint(activePoint === 'to' ? null : 'to');
+                  if (!searchJustFocusedRef.current) {
+                    snapToMin();
+                  }
+                }}
               >
                 <ThemedText type="option">DESTINATION</ThemedText>
                 <SearchBox
@@ -194,6 +222,13 @@ export const CreateTripSheet: React.FC<Props> = ({
                   onSelect={(place) => {
                     setToCoords(place.coords);
                     setToPlaceName(place.name);
+                  }}
+                  onFocus={() => {
+                    searchJustFocusedRef.current = true;
+                    snapToMax();
+                    setTimeout(() => {
+                      searchJustFocusedRef.current = false;
+                    }, 100);
                   }}
                 />
               </View>
@@ -207,11 +242,8 @@ export const CreateTripSheet: React.FC<Props> = ({
           </ThemedText>
 
           <View style={styles.settings}>
-            {/* Alarm Sound */}
             <View style={[styles.settingRow, { marginVertical: 8 }]}>
-              <View>
-                <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
-              </View>
+              <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
               <View style={styles.pickerRow}>
                 <TouchableOpacity onPress={() => setAlarmSoundIndex(cycleLeft(alarmSoundIndex, alarmSounds))}>
                   <ThemedText type="default">{'<'}</ThemedText>
@@ -227,11 +259,8 @@ export const CreateTripSheet: React.FC<Props> = ({
 
             <View style={styles.separator} />
 
-            {/* Vibration */}
             <View style={[styles.settingRow, { marginVertical: 8 }]}>
-              <View>
-                <ThemedText type="defaultSemiBold">Vibration</ThemedText>
-              </View>
+              <ThemedText type="defaultSemiBold">Vibration</ThemedText>
               <Switch
                 value={vibrationEnabled}
                 onValueChange={setVibrationEnabled}
@@ -242,11 +271,8 @@ export const CreateTripSheet: React.FC<Props> = ({
 
             <View style={styles.separator} />
 
-            {/* Notify Earlier */}
             <View style={[styles.settingRow, { marginVertical: 8 }]}>
-              <View>
-                <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
-              </View>
+              <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
               <View style={styles.pickerRow}>
                 <TouchableOpacity onPress={() => setNotifyEarlierIndex(cycleLeft(notifyEarlierIndex, notifyDistances))}>
                   <ThemedText type="default">{'<'}</ThemedText>
@@ -267,19 +293,21 @@ export const CreateTripSheet: React.FC<Props> = ({
 
       <View style={styles.separator} />
       <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.cancelBtn}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
           <ThemedText type="button" style={{ color: '#104E3B' }}>
             Cancel
           </ThemedText>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.useAlarmBtn}
-          onPress={() => setMode('checkpoints')}
+          style={[styles.useAlarmBtn, {opacity: isNextDisabled ? 0.5 : 1 }]}
+          disabled={isNextDisabled}
+          onPress={() => {
+            setActivePoint(null);
+            setMode('checkpoints');
+          }}
         >
-          <ThemedText type="button" style={{ color: 'white' }}>
+          <ThemedText type="button" style={{ color: 'white'}}>
             Next
           </ThemedText>
         </TouchableOpacity>
