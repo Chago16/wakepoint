@@ -1,3 +1,4 @@
+import { SearchBox } from '@/components/SearchBox';
 import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
 import React, { useEffect, useRef, useState } from 'react';
@@ -11,14 +12,28 @@ import {
 } from 'react-native';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.70;
-const MIN_HEIGHT = WINDOW_HEIGHT * 0.25;
+const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0];
+
+type Checkpoint = {
+  id: string;
+  name: string;
+  coords: [number, number] | null;
+  search: string;
+};
 
 interface Props {
   setMode: (mode: 'edit' | 'checkpoints' | 'alarm') => void;
+  checkpoints: Checkpoint[];
+  setCheckpoints: (checkpoints: Checkpoint[]) => void;
+  activeCheckpointId: string | null;
+  setActiveCheckpointId: (id: string | null) => void;
+  fromLocation: string; // ✅ add this
+  toLocation: string;   // ✅ add this
 }
 
-const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
+
+const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckpoints, activeCheckpointId, setActiveCheckpointId, fromLocation, toLocation }) => {
   const [isSheetUp, setIsSheetUp] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
@@ -82,57 +97,89 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
 
   return (
     <>
-      <View style={styles.instructionBanner}>
-        <ThemedText type="defaultSemiBold" style={styles.instructionText}>
-          TIP:    
-        </ThemedText>
-        <ThemedText type="default" style={[, {paddingRight: 10, fontSize: 13}]}>
-          Tap the map to add as many checkpoints as you need. Use the bottom sheet to search and fine-tune them.
-        </ThemedText>
-      </View>
-
       <Animated.View style={bottomSheetStyle}>
         <View style={styles.draggableArea} {...panResponder.panHandlers}>
           <View style={styles.dragHandle} />
         </View>
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.sheetContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
           <ThemedText type="titleSmall">Update Trip Checkpoints</ThemedText>
           <ThemedText type="default" style={{ marginBottom: 10 }}>
-            To add a checkpoint, tap on the map. Tap again to delete.
+            Customize your route using checkpoints.
           </ThemedText>
 
           <View style={{ position: 'relative', marginBottom: 16 }}>
             <View style={styles.timelineLine} />
-
             <View style={[styles.checkpoint]}>
               <View style={styles.checkIconCircle} />
               <View style={styles.checkpointTextBox}>
                 <ThemedText type="option">FROM</ThemedText>
-                <ThemedText type="defaultSemiBold">Sonoma Residences, Sta. Cruz</ThemedText>
+                <ThemedText type="defaultSemiBold">{fromLocation || 'Unknown location'}</ThemedText>
               </View>
             </View>
 
-            {[1, 2, 3].map((i) => (
-              <View key={i} style={styles.checkpoints}>
+            {checkpoints.map((cp, index) => (
+              <TouchableOpacity
+                key={cp.id}
+                style={styles.checkpoints}
+                onPress={() => {
+                  setActiveCheckpointId(activeCheckpointId === cp.id ? null : cp.id);
+                }}
+              >
                 <View style={styles.line} />
                 <View style={styles.checkpointDot} />
-                <View style={styles.checkpointDetail}>
-                  <ThemedText type="option">{`CHECKPOINT ${i}`}</ThemedText>
-                  <ThemedText type="default">{`Address of checkpoint ${i} here`}</ThemedText>
+                <View
+                  style={[
+                    styles.checkpointDetail,
+                    activeCheckpointId === cp.id && { backgroundColor: '#CFC8F3' }, // ✅ highlight just the inner box
+                  ]}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <ThemedText type="option">{`CHECKPOINT ${index + 1}`}</ThemedText>
+                    <TouchableOpacity onPress={() => setCheckpoints(checkpoints.filter((item) => item.id !== cp.id))}>
+                      <ThemedText type="default" style={{ color: 'red' }}>✕</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                  <SearchBox
+                    value={cp.search}
+                    onChangeText={(text) => {
+                      const updated = checkpoints.map((item) =>
+                        item.id === cp.id ? { ...item, search: text } : item
+                      );
+                      setCheckpoints(updated);
+                    }}
+                    onSelect={(location) => {
+                      const updated = checkpoints.map((item) =>
+                        item.id === cp.id
+                          ? { ...item, name: location.name, coords: location.coords, search: location.name }
+                          : item
+                      );
+                      setCheckpoints(updated);
+                    }}
+                    placeholder="Search checkpoint"
+                  />
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
+
+
+            {checkpoints.length < 20 && (
+              <TouchableOpacity
+                style={{ marginVertical: 10, alignSelf: 'flex-start' }}
+                onPress={() => {
+                  const newId = Date.now().toString();
+                  setCheckpoints([...checkpoints, { id: newId, name: '', coords: null, search: '' }]);
+                }}
+              >
+                <ThemedText type="defaultSemiBold" style={{ color: '#2C7865', marginLeft: 110, marginTop: -10,}}>+ Add Checkpoint</ThemedText>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.checkpoint}>
               <View style={styles.finalPin} />
               <View style={styles.checkpointTextBox}>
                 <ThemedText type="option">DESTINATION</ThemedText>
-                <ThemedText type="defaultSemiBold">Anonas Street, Sta. Mesa, Manila</ThemedText>
+                <ThemedText type="defaultSemiBold">{toLocation || 'Unknown location'}</ThemedText>
               </View>
             </View>
           </View>
@@ -143,10 +190,7 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
 
       <View style={styles.separator} />
       <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.cancelBtn}
-          onPress={() => setMode('edit')}
-        >
+        <TouchableOpacity style={styles.cancelBtn} onPress={() => setMode('edit')}>
           <ThemedText type="button" style={{ color: '#104E3B' }}>Back</ThemedText>
         </TouchableOpacity>
 
@@ -154,7 +198,7 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
           style={styles.useAlarmBtn}
           onPress={() => {
             if (!isSheetUp) {
-              setShowModal(true); // 🔴 Show confirmation modal
+              setShowModal(true);
             } else {
               currentPosition.current = 1;
               Animated.spring(animatedValue, {
@@ -174,11 +218,9 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode }) => {
       {showModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <ThemedText type="title" style={{ fontSize: 20, textAlign: 'center' }}>
-              Confirm Alarm Save
-            </ThemedText>
+            <ThemedText type="title" style={{ fontSize: 20, textAlign: 'center' }}>Update Alarm?</ThemedText>
             <ThemedText type="default" style={{ marginTop: 8, marginBottom: 24, textAlign: 'center' }}>
-              Saving this alarm will update your edits. Continue?
+              Proceeding will ocerwrite your saved route.
             </ThemedText>
 
             <View style={styles.modalButtonRow}>
@@ -212,34 +254,24 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 40,
   },
-  instructionBanner: {
-    position: 'absolute',
-    top: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    margin: 20,
-    marginTop: 35,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    zIndex: 10,
-    borderRadius: 50,
-    borderColor: '#ccc',
-    flexDirection: 'row', // ✅ Change from 'row' to 'column'
-    maxWidth: '90%',         // ✅ Prevent overflow on the sides
-  },
-  instructionText: {
-    color: '#104E3B',
-  },
   checkpoint: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
-    borderRadius:20,
+    borderRadius: 20,
   },
   checkpoints: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
     paddingLeft: 20,
+  },
+  highlightedCheckpoint: {
+    borderWidth: 2,
+    borderColor: '#8CC63F',
+    backgroundColor: '#F0FFE5',
+    borderRadius: 12,
+    padding: 10,
   },
   checkpointDetail: {
     backgroundColor: '#F1F1F1',
@@ -331,32 +363,32 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   timelineLine: {
-  position: 'absolute',
-  left: 7.3,
-  top:20,
-  bottom: 55,
-  width: 2,
-  backgroundColor: '#8CC63F',
-  zIndex: -1,
+    position: 'absolute',
+    left: 7.3,
+    top: 20,
+    bottom: 55,
+    width: 2,
+    backgroundColor: '#8CC63F',
+    zIndex: -1,
   },
   line: {
     position: 'absolute',
-    top: 9.8,          
-    left: 9,         
-    width: 11,        
-    height: 2,        
+    top: 9.8,
+    left: 9,
+    width: 11,
+    height: 2,
     backgroundColor: '#8CC63F',
     zIndex: -1,
   },
   spacer: {
-    marginBottom : 25,
+    marginBottom: 25,
   },
   modalOverlay: {
-  ...StyleSheet.absoluteFillObject,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 99,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 99,
   },
   modalBox: {
     width: '85%',
@@ -382,5 +414,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#104E3B',
     borderRadius: 8,
   },
-
 });

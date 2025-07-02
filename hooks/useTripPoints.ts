@@ -7,7 +7,9 @@ export type Checkpoint = {
   id: string;
   name: string;
   coords: [number, number] | null;
-};
+  search: string;
+}
+
 
 
 interface TripPointsStore {

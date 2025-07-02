@@ -50,7 +50,7 @@ export default function HomeScreen() {
           <ThemedView style={styles.headerContainer}>
             <ThemedView style={styles.welcomeContainer}>
               <ThemedText type="subtitle1">Welcome</ThemedText>
-              <ThemedText type="subtitle2">{userName || 'Name'},</ThemedText>
+              <ThemedText type="subtitle2">{userName || 'User'},</ThemedText>
             </ThemedView>
             <ThemedText type="defaultSemiBold">
               We are here to wake you up

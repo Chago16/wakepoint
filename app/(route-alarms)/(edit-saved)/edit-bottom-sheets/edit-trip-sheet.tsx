@@ -1,3 +1,4 @@
+import { SearchBox } from '@/components/SearchBox';
 import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
 import { router } from 'expo-router';
@@ -14,21 +15,66 @@ import {
 } from 'react-native';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.70;
-const MID_HEIGHT = WINDOW_HEIGHT * 0.51;
+const MID_HEIGHT = WINDOW_HEIGHT * 0.44;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
-const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT , 0];
+const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT, 0];
 
 interface Props {
   setMode: (mode: 'edit' | 'checkpoints' | 'alarm') => void;
+
+  activePoint: 'from' | 'to' | null;
+  setActivePoint: (point: 'from' | 'to' | null) => void;
+
+  fromPlaceName: string;
+  setFromPlaceName: (name: string) => void;
+  fromCoords: [number, number] | null;
+  setFromCoords: (coords: [number, number]) => void;
+
+  toPlaceName: string;
+  setToPlaceName: (name: string) => void;
+  toCoords: [number, number] | null;
+  setToCoords: (coords: [number, number]) => void;
+
+  alarmSoundIndex: number;
+  setAlarmSoundIndex: (index: number) => void;
+
+  vibrationEnabled: boolean;
+  setVibrationEnabled: (value: boolean) => void;
+
+  notifyEarlierIndex: number;
+  setNotifyEarlierIndex: (index: number) => void;
 }
 
-const EditTripSheet: React.FC<Props> = ({ setMode }) => {
+const alarmSounds = ['Alarm 1', 'Alarm 2', 'Alarm 3'];
+const notifyDistances = [300, 500, 700];
+
+export const EditTripSheet: React.FC<Props> = ({
+  setMode,
+  activePoint,
+  setActivePoint,
+  fromPlaceName,
+  setFromPlaceName,
+  fromCoords,
+  setFromCoords,
+  toPlaceName,
+  setToPlaceName,
+  toCoords,
+  setToCoords,
+  alarmSoundIndex,
+  setAlarmSoundIndex,
+  vibrationEnabled,
+  setVibrationEnabled,
+  notifyEarlierIndex,
+  setNotifyEarlierIndex,
+}) => {
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
   const currentPosition = useRef(1);
 
-  const [soundEnabled, setSoundEnabled] = React.useState(false);
-  const [vibrationEnabled, setVibrationEnabled] = React.useState(false);
-  const [notifyEarlierEnabled, setNotifyEarlierEnabled] = React.useState(false);
+  const cycleLeft = (index: number, list: any[]) =>
+    index === 0 ? list.length - 1 : index - 1;
+
+  const cycleRight = (index: number, list: any[]) =>
+    index === list.length - 1 ? 0 : index + 1;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -106,28 +152,53 @@ const EditTripSheet: React.FC<Props> = ({ setMode }) => {
             You can update your alarm settings here.
           </ThemedText>
 
-          <View style={{ position: 'relative'}}>
+          <View style={{ position: 'relative' }}>
             <View style={styles.timelineLine} />
 
+            {/* FROM checkpoint */}
             <View style={styles.checkpoint}>
               <View style={styles.checkIconCircle} />
-              <View style={styles.checkpointTextBox}>
+              <View
+                style={[
+                  styles.fromContainer,
+                  activePoint === 'from' && { backgroundColor: '#CFC8F3' },
+                ]}
+                onTouchEnd={() => setActivePoint(activePoint === 'from' ? null : 'from')}
+              >
                 <ThemedText type="option">FROM</ThemedText>
-                <ThemedText type="defaultSemiBold">
-                  From
-                </ThemedText>
+                <SearchBox
+                  value={fromPlaceName}
+                  onChangeText={setFromPlaceName}
+                  onSelect={(place) => {
+                    setFromCoords(place.coords);
+                    setFromPlaceName(place.name);
+                  }}
+                />
               </View>
             </View>
 
+            {/* TO checkpoint */}
             <View style={styles.checkpoint}>
               <View style={styles.finalPin} />
-              <View style={styles.checkpointTextBox}>
+              <View
+                style={[
+                  styles.destinationContainer,
+                  activePoint === 'to' && { backgroundColor: '#CFC8F3' },
+                ]}
+                onTouchEnd={() => setActivePoint(activePoint === 'to' ? null : 'to')}
+              >
                 <ThemedText type="option">DESTINATION</ThemedText>
-                <ThemedText type="defaultSemiBold">Destination</ThemedText>
+                <SearchBox
+                  value={toPlaceName}
+                  onChangeText={setToPlaceName}
+                  onSelect={(place) => {
+                    setToCoords(place.coords);
+                    setToPlaceName(place.name);
+                  }}
+                />
               </View>
             </View>
           </View>
-          
 
           <View style={styles.separator} />
 
@@ -135,41 +206,70 @@ const EditTripSheet: React.FC<Props> = ({ setMode }) => {
             Alarm Settings
           </ThemedText>
 
-          <View style={[styles.settings]}>
-              {[ 
-              { label: 'Alarm sound', subtitle: 'Default tone', value: soundEnabled, onChange: setSoundEnabled },
-              { label: 'Vibration', subtitle: 'Silent alert', value: vibrationEnabled, onChange: setVibrationEnabled },
-              { label: 'Notify me earlier', subtitle: '300m alert', value: notifyEarlierEnabled, onChange: setNotifyEarlierEnabled },
-            ].map((setting, idx) => (
-              <React.Fragment key={idx}>
-                <View style={[styles.settingRow, { marginVertical: 8 }]}>
-                  <View>
-                    <ThemedText type="defaultSemiBold">{setting.label}</ThemedText>
-                    <ThemedText type="default">{setting.subtitle}</ThemedText>
-                  </View>
-                  <Switch
-                    value={setting.value}
-                    onValueChange={setting.onChange}
-                    trackColor={{ false: '#E0E0E0', true: '#104E3B' }}
-                    thumbColor={setting.value ? '#fff' : '#d3d3d3'}
-                  />
-                </View>
-                {idx < 2 && <View style={styles.separator} />}
-              </React.Fragment>
-            ))}
-          </View >
-          
+          <View style={styles.settings}>
+            {/* Alarm Sound */}
+            <View style={[styles.settingRow, { marginVertical: 8 }]}>
+              <View>
+                <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
+              </View>
+              <View style={styles.pickerRow}>
+                <TouchableOpacity onPress={() => setAlarmSoundIndex(cycleLeft(alarmSoundIndex, alarmSounds))}>
+                  <ThemedText type="default">{'<'}</ThemedText>
+                </TouchableOpacity>
+                <ThemedText type="default" style={{ marginHorizontal: 12 }}>
+                  {alarmSounds[alarmSoundIndex]}
+                </ThemedText>
+                <TouchableOpacity onPress={() => setAlarmSoundIndex(cycleRight(alarmSoundIndex, alarmSounds))}>
+                  <ThemedText type="default">{'>'}</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          <View style={{ height: 40 }} /> {/* Spacer for buttons */}
+            <View style={styles.separator} />
+
+            {/* Vibration */}
+            <View style={[styles.settingRow, { marginVertical: 8 }]}>
+              <View>
+                <ThemedText type="defaultSemiBold">Vibration</ThemedText>
+              </View>
+              <Switch
+                value={vibrationEnabled}
+                onValueChange={setVibrationEnabled}
+                trackColor={{ false: '#E0E0E0', true: '#104E3B' }}
+                thumbColor={vibrationEnabled ? '#fff' : '#d3d3d3'}
+              />
+            </View>
+
+            <View style={styles.separator} />
+
+            {/* Notify Earlier */}
+            <View style={[styles.settingRow, { marginVertical: 8 }]}>
+              <View>
+                <ThemedText type="defaultSemiBold">Notify me earlier</ThemedText>
+              </View>
+              <View style={styles.pickerRow}>
+                <TouchableOpacity onPress={() => setNotifyEarlierIndex(cycleLeft(notifyEarlierIndex, notifyDistances))}>
+                  <ThemedText type="default">{'<'}</ThemedText>
+                </TouchableOpacity>
+                <ThemedText type="default" style={{ marginHorizontal: 12 }}>
+                  {notifyDistances[notifyEarlierIndex]} m
+                </ThemedText>
+                <TouchableOpacity onPress={() => setNotifyEarlierIndex(cycleRight(notifyEarlierIndex, notifyDistances))}>
+                  <ThemedText type="default">{'>'}</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
       </Animated.View>
-
 
       <View style={styles.separator} />
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={styles.cancelBtn}
-          onPress={() => router.back()} // You can also add a modal confirm here
+          onPress={() => router.back()}
         >
           <ThemedText type="button" style={{ color: '#104E3B' }}>
             Cancel
@@ -187,8 +287,6 @@ const EditTripSheet: React.FC<Props> = ({ setMode }) => {
     </>
   );
 };
-
-export default EditTripSheet;
 
 const styles = StyleSheet.create({
   sheetContent: {
@@ -218,7 +316,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginRight: 12,
   },
-  checkpointTextBox: {
+  fromContainer: {
+    backgroundColor: '#F0F0F0',
+    padding: 10,
+    borderRadius: 6,
+    flex: 1,
+  },
+  destinationContainer: {
     backgroundColor: '#F0F0F0',
     padding: 10,
     borderRadius: 6,
@@ -236,6 +340,13 @@ const styles = StyleSheet.create({
   },
   settings: {
     marginBottom: 25,
+  },
+  pickerRow: {
+    width: 100,
+    marginRight: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -276,12 +387,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   timelineLine: {
-  position: 'absolute',
-  left: 7.3,
-  top:20,
-  bottom: 55,
-  width: 2,
-  backgroundColor: '#8CC63F',
-  zIndex: -1,
+    position: 'absolute',
+    left: 7.3,
+    top: 20,
+    bottom: 65,
+    width: 2,
+    backgroundColor: '#8CC63F',
+    zIndex: -1,
   },
 });

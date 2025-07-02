@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
 import { router } from 'expo-router';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Image,
@@ -17,7 +17,36 @@ const MAX_HEIGHT = WINDOW_HEIGHT * 0.55;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.55;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0]; // Only two states
 
-const AlarmSetSheet = () => {
+interface AlamUpdateSheetProps {
+  alarmSoundIndex: number;
+  vibrationEnabled: boolean;
+  notifyEarlierIndex: number;
+  fromPlaceName: string;
+  toPlaceName: string;
+  fromCoords: [number, number] | null;
+  toCoords: [number, number] | null;
+  checkpoints: {
+    id: string;
+    name: string;
+    coords: [number, number] | null;
+    search: string;
+  }[];
+  savedRouteId: string;
+  userId: string;
+}
+
+const AlamUpdateSheet: React.FC<AlamUpdateSheetProps> = ({
+  alarmSoundIndex,
+  vibrationEnabled,
+  notifyEarlierIndex,
+  fromPlaceName,
+  toPlaceName,
+  fromCoords,
+  toCoords,
+  checkpoints,
+  savedRouteId,
+  userId,
+}) => {
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
   const currentPosition = useRef(1);
 
@@ -58,6 +87,34 @@ const AlarmSetSheet = () => {
     ],
   };
 
+  const updatedTripData = {
+    user_id: userId,
+    saved_route_id: savedRouteId,
+    date_modified: new Date().toISOString(),
+    from: fromCoords,
+    from_name: fromPlaceName,
+    destination: toCoords,
+    destination_name: toPlaceName,
+    checkpoints: checkpoints.map(cp => ({
+      id: cp.id,
+      name: cp.name,
+      coords: cp.coords,
+      search: cp.search,
+    })),
+    alarm_sound: alarmSoundIndex,
+    vibration: vibrationEnabled,
+    notif_early: notifyEarlierIndex,
+  };
+
+  // 🧠 Auto-update trip data when this component mounts
+  useEffect(() => {
+    const updateTripData = async () => {
+      console.log('🔄 Updating trip data to database (mock):', updatedTripData);
+      // await fetch('/api/updateTrip', { method: 'PUT', body: JSON.stringify(updatedTripData) });
+    };
+    updateTripData();
+  }, []);
+
   return (
     <>
       <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
@@ -74,7 +131,7 @@ const AlarmSetSheet = () => {
             resizeMode="contain"
           />
           <ThemedText type="titleSmall" style={{ color: '#145E4D', textAlign: 'center' }}>
-            Your alarm has been saved.
+            Your alarm has been updated.
           </ThemedText>
           <ThemedText type="default" style={{ marginBottom: 25, textAlign: 'center' }}>
             You can start your trip now or use it later.
@@ -85,7 +142,15 @@ const AlarmSetSheet = () => {
       <View style={styles.buttonCol}>
         <TouchableOpacity
           style={styles.useBtn}
-          onPress={() => router.replace('/gps-window/main-gps')}
+          onPress={() =>
+            router.replace({
+              pathname: '/gps-window/main-gps',
+              params: {
+                userId,
+                savedRouteId,
+              },
+            })
+          }
         >
           <ThemedText type="button" style={{ color: 'white' }}>
             Use the Updated Alarm
@@ -104,17 +169,13 @@ const AlarmSetSheet = () => {
   );
 };
 
-export default AlarmSetSheet;
+export default AlamUpdateSheet;
 
 const styles = StyleSheet.create({
   sheetContent: {
     paddingHorizontal: 20,
     paddingTop: 0,
     paddingBottom: 40,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#D3D3D3',
   },
   buttonCol: {
     flexDirection: 'column',
@@ -144,9 +205,9 @@ const styles = StyleSheet.create({
   },
   bottomSheet: {
     position: 'absolute',
+    bottom: 0,
     width: '100%',
     height: MAX_HEIGHT,
-    bottom: MIN_HEIGHT - MAX_HEIGHT,
     backgroundColor: 'white',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,

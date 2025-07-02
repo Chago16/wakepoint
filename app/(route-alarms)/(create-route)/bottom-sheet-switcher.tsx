@@ -23,8 +23,6 @@ interface Props {
   activePoint: 'from' | 'to' | null;
   setActivePoint: (point: 'from' | 'to' | null) => void;
 
-  
-
   // Alarm settings
   alarmSoundIndex: number;
   setAlarmSoundIndex: (index: number) => void;
@@ -74,16 +72,20 @@ const BottomSheetSwitcher: React.FC<Props> = ({
       return (
         <CreateTripSheet
           setMode={setMode}
+
           activePoint={activePoint}
           setActivePoint={setActivePoint}
+
           fromPlaceName={fromPlaceName}
           setFromPlaceName={setFromPlaceName}
           fromCoords={fromCoords}
           setFromCoords={setFromCoords}
+
           toPlaceName={toPlaceName}
           setToPlaceName={setToPlaceName}
           toCoords={toCoords}
           setToCoords={setToCoords}
+
           alarmSoundIndex={alarmSoundIndex}
           setAlarmSoundIndex={setAlarmSoundIndex} // ✅ THIS MUST EXIST
           vibrationEnabled={vibrationEnabled}
@@ -97,17 +99,31 @@ const BottomSheetSwitcher: React.FC<Props> = ({
       return (
         <TripCheckpointsSheet
           setMode={setMode}
+
           checkpoints={checkpoints}
           setCheckpoints={setCheckpoints}
+
           activeCheckpointId={activeCheckpointId}
           setActiveCheckpointId={setActiveCheckpointId}
+
           fromLocation={fromPlaceName}
           toLocation={toPlaceName}
         />
       );
 
     case 'alarm':
-      return <AlarmSetSheet />;
+       return (
+        <AlarmSetSheet
+          alarmSoundIndex={alarmSoundIndex}
+          vibrationEnabled={vibrationEnabled}
+          notifyEarlierIndex={notifyEarlierIndex}
+          fromPlaceName={fromPlaceName}
+          toPlaceName={toPlaceName}
+          fromCoords={fromCoords}
+          toCoords={toCoords}
+          checkpoints={checkpoints}
+        />
+      );
 
     default:
       return null;

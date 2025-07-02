@@ -70,7 +70,7 @@ export default function MapScreen() {
             router.push('/dashboard'); // or set a trip state to "cancelled"
           }}
         >
-          <ThemedText type="button" style={styles.cancelTripText}>Cancel Trip</ThemedText>
+          <ThemedText type="button" style={styles.cancelTripText}>End Trip Early</ThemedText>
         </TouchableOpacity>                    
 
         <View style={styles.statusBarOverlay} />

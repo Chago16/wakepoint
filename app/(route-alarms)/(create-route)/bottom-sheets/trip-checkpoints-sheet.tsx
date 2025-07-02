@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.70;
-const MIN_HEIGHT = WINDOW_HEIGHT * 0.25;
+const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0];
 
 type Checkpoint = {
@@ -97,13 +97,6 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
 
   return (
     <>
-      <View style={styles.instructionBanner}>
-        <ThemedText type="defaultSemiBold" style={styles.instructionText}>TIP:</ThemedText>
-        <ThemedText type="default" style={{ paddingRight: 10, fontSize: 13 }}>
-          Tap the map to add as many checkpoints as you need. Use the bottom sheet to search and fine-tune them.
-        </ThemedText>
-      </View>
-
       <Animated.View style={bottomSheetStyle}>
         <View style={styles.draggableArea} {...panResponder.panHandlers}>
           <View style={styles.dragHandle} />
@@ -112,7 +105,7 @@ const TripCheckpointsSheet: React.FC<Props> = ({ setMode, checkpoints, setCheckp
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
           <ThemedText type="titleSmall">Choose Trip Checkpoints</ThemedText>
           <ThemedText type="default" style={{ marginBottom: 10 }}>
-            To add a checkpoint, tap on the map. Tap again to delete.
+            Customize your route using checkpoints.
           </ThemedText>
 
           <View style={{ position: 'relative', marginBottom: 16 }}>
@@ -260,23 +253,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 0,
     paddingBottom: 40,
-  },
-  instructionBanner: {
-    position: 'absolute',
-    top: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    margin: 20,
-    marginTop: 35,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    zIndex: 10,
-    borderRadius: 50,
-    borderColor: '#ccc',
-    flexDirection: 'row',
-    maxWidth: '90%',
-  },
-  instructionText: {
-    color: '#104E3B',
   },
   checkpoint: {
     flexDirection: 'row',

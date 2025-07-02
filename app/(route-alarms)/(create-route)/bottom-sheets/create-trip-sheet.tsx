@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.70;
-const MID_HEIGHT = WINDOW_HEIGHT * 0.51;
+const MID_HEIGHT = WINDOW_HEIGHT * 0.44;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, MID_HEIGHT - MAX_HEIGHT, 0];
 

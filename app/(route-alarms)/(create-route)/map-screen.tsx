@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
+import InstructionBanner from '@/components/InstructionBanner';
 import { TripMarkers } from '@/components/TripMarkers';
 import { useTripPoints } from '@/hooks/useTripPoints';
 import { getAddressFromCoordinates } from '@/utils/geocodingService';
@@ -132,6 +133,9 @@ const MapScreen = () => {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
+
+        {mode !== 'alarm' && <InstructionBanner />}
+        
         <Mapbox.MapView
           style={styles.map}
           styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"

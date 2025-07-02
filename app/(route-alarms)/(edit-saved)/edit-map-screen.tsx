@@ -4,20 +4,55 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
+import InstructionBanner from '@/components/InstructionBanner';
+import { TripMarkers } from '@/components/TripMarkers';
+import { useTripPoints } from '@/hooks/useTripPoints';
+import { getAddressFromCoordinates } from '@/utils/geocodingService';
 import { requestLocationPermissions } from '@/utils/permissions';
-import BottomSheetSwitcher from './edit-bottom-sheet-switcher'; // points to (create-route)/bottom-sheet-switcher
+import { BASE_URL } from '@config';
+import BottomSheetSwitcher from './edit-bottom-sheet-switcher';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
 const MapScreen = () => {
   const { mode: initialMode } = useLocalSearchParams();
-  const [mode, setMode] = useState<string>(initialMode ?? 'edit'); // 'create' by default
+  const [mode, setMode] = useState<string>(initialMode ?? 'edit');
   const [centerCoordinate, setCenterCoordinate] = useState<[number, number]>([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const appState = useRef(AppState.currentState);
+  const [activePoint, setActivePoint] = useState<'from' | 'to' | null>(null);
+  const [activeCheckpointId, setActiveCheckpointId] = useState<string | null>(null);
+  const [fromPlaceName, setFromPlaceName] = useState('');
+  const [toPlaceName, setToPlaceName] = useState('');
 
-  // Re-request permission if app returns from background
+  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
+
+  const {
+    fromCoords,
+    toCoords,
+    setFromCoords,
+    setToCoords,
+    checkpoints,
+    setCheckpoints,
+  } = useTripPoints();
+
+  // 🆕 Alarm state added
+  const [alarmSoundIndex, setAlarmSoundIndex] = useState(0);
+  const [notifyEarlierIndex, setNotifyEarlierIndex] = useState(0);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
+
+  useEffect(() => {
+    return () => {
+      setFromCoords(null);
+      setToCoords(null);
+      setFromPlaceName('');
+      setToPlaceName('');
+      setActivePoint(null);
+      setRouteGeoJSON(null);
+    };
+  }, []);
+
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
@@ -31,7 +66,6 @@ const MapScreen = () => {
     return () => subscription.remove();
   }, []);
 
-  // Initial location permission + centering
   useEffect(() => {
     (async () => {
       const granted = await requestLocationPermissions();
@@ -44,10 +78,64 @@ const MapScreen = () => {
     })();
   }, []);
 
+  useEffect(() => {
+    if (fromCoords && toCoords) {
+      console.log('✅ Detected both from and to coords, fetching route...');
+      fetchSnappedRoute();
+    } else {
+      console.log('🟡 Missing coords:', { fromCoords, toCoords });
+    }
+  }, [fromCoords, toCoords, checkpoints]);
+
+  const fetchSnappedRoute = async () => {
+    if (!fromCoords || !toCoords) {
+      console.warn('⚠️ fetchSnappedRoute called without from/to coords.');
+      return;
+    }
+
+    const waypointCoords = checkpoints.map(cp => cp.coords);
+    console.log('📦 Fetching directions with:', {
+      from: fromCoords,
+      to: toCoords,
+      waypoints: waypointCoords,
+    });
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/directions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: fromCoords,
+          to: toCoords,
+          waypoints: waypointCoords,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data?.geometry) {
+        console.error('❌ No geometry returned in API response:', data);
+        return;
+      }
+
+      setRouteGeoJSON({
+        type: 'Feature',
+        geometry: data.geometry,
+      });
+
+      console.log('✅ Route received and drawn!', data);
+    } catch (err) {
+      console.error('🔥 Error fetching route:', err);
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
+
+        {mode !== 'alarm' && <InstructionBanner />}
+        
         <Mapbox.MapView
           style={styles.map}
           styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"
@@ -55,6 +143,34 @@ const MapScreen = () => {
           compassEnabled={false}
           scaleBarEnabled={false}
           onDidFinishLoadingMap={() => setMapReady(true)}
+          onPress={async (e) => {
+            const coords = e.geometry.coordinates as [number, number];
+            const [lng, lat] = coords;
+            const addressResult = await getAddressFromCoordinates(lat, lng);
+
+            if (activePoint === 'from') {
+              setFromCoords(coords);
+              if (addressResult) setFromPlaceName(addressResult.address);
+            } else if (activePoint === 'to') {
+              setToCoords(coords);
+              if (addressResult) setToPlaceName(addressResult.address);
+            } else if (activeCheckpointId) {
+              const updated = checkpoints.map((cp) =>
+                cp.id === activeCheckpointId
+                  ? {
+                      ...cp,
+                      coords,
+                      search: addressResult?.address ?? '',
+                      name: addressResult?.address ?? '',
+                    }
+                  : cp
+              );
+              setCheckpoints(updated);
+            }
+
+            console.log('Tapped coords:', coords);
+            if (addressResult) console.log('Reverse address:', addressResult.address);
+          }}
         >
           <Camera
             centerCoordinate={centerCoordinate}
@@ -63,17 +179,49 @@ const MapScreen = () => {
             animationDuration={1000}
           />
 
-          {mapReady && locationGranted && (
-            <Mapbox.UserLocation
-              visible={true}
-              showsUserHeadingIndicator={true}
-            />
+          {routeGeoJSON && (
+            <Mapbox.ShapeSource id="routeSource" shape={routeGeoJSON}>
+              <Mapbox.LineLayer
+                id="routeLine"
+                style={{
+                  lineColor: '#ADCE7D',
+                  lineWidth: 5,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </Mapbox.ShapeSource>
           )}
 
-          {/* TODO: Add ShapeSource for route + markers later */}
+          <TripMarkers fromCoords={fromCoords} toCoords={toCoords} checkpoints={checkpoints} />
+
+          {mapReady && locationGranted && (
+            <Mapbox.UserLocation visible={true} showsUserHeadingIndicator={true} />
+          )}
         </Mapbox.MapView>
 
-        <BottomSheetSwitcher mode={mode} setMode={setMode} />
+        <BottomSheetSwitcher
+          mode={mode}
+          setMode={setMode}
+          setFromCoords={setFromCoords}
+          setToCoords={setToCoords}
+          activePoint={activePoint}
+          setActivePoint={setActivePoint}
+          fromPlaceName={fromPlaceName}
+          setFromPlaceName={setFromPlaceName}
+          toPlaceName={toPlaceName}
+          setToPlaceName={setToPlaceName}
+          checkpoints={checkpoints}
+          setCheckpoints={setCheckpoints}
+          activeCheckpointId={activeCheckpointId}
+          setActiveCheckpointId={setActiveCheckpointId}
+          alarmSoundIndex={alarmSoundIndex}
+          setAlarmSoundIndex={setAlarmSoundIndex}
+          notifyEarlierIndex={notifyEarlierIndex}
+          setNotifyEarlierIndex={setNotifyEarlierIndex}
+          vibrationEnabled={vibrationEnabled}
+          setVibrationEnabled={setVibrationEnabled}
+        />
       </View>
     </>
   );

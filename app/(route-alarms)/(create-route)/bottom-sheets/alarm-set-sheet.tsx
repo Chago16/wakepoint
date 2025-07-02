@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
 import { router } from 'expo-router';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Image,
@@ -12,14 +12,44 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import uuid from 'react-native-uuid'; // ✅ Updated to use react-native-uuid
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.55;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.55;
 const POSITIONS = [MIN_HEIGHT - MAX_HEIGHT, 0]; // Only two states
 
-const AlarmSetSheet = () => {
+interface AlarmSetSheetProps {
+  alarmSoundIndex: number;
+  vibrationEnabled: boolean;
+  notifyEarlierIndex: number;
+  fromPlaceName: string;
+  toPlaceName: string;
+  fromCoords: [number, number] | null;
+  toCoords: [number, number] | null;
+  checkpoints: {
+    id: string;
+    name: string;
+    coords: [number, number] | null;
+    search: string;
+  }[];
+}
+
+const userId = 'mock-user-id'; // 🔐 placeholder for now
+
+const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
+  alarmSoundIndex,
+  vibrationEnabled,
+  notifyEarlierIndex,
+  fromPlaceName,
+  toPlaceName,
+  fromCoords,
+  toCoords,
+  checkpoints,
+}) => {
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
   const currentPosition = useRef(1);
+
+  const savedRouteId = useRef(uuid.v4());
 
   const panResponder = useRef(
     PanResponder.create({
@@ -58,6 +88,34 @@ const AlarmSetSheet = () => {
     ],
   };
 
+  const preparedTripData = {
+    user_id: userId,
+    saved_route_id: savedRouteId.current,
+    date_modified: new Date().toISOString(),
+    from: fromCoords,
+    from_name: fromPlaceName,
+    destination: toCoords,
+    destination_name: toPlaceName,
+    checkpoints: checkpoints.map(cp => ({
+      id: cp.id,
+      name: cp.name,
+      coords: cp.coords,
+      search: cp.search,
+    })),
+    alarm_sound: alarmSoundIndex,
+    vibration: vibrationEnabled,
+    notif_early: notifyEarlierIndex,
+  };
+
+  // 🧠 Auto-save trip data when this component mounts
+  useEffect(() => {
+    const saveTripData = async () => {
+      console.log('🗃️ Saving trip data to database (mock):', preparedTripData);
+      // await fetch('/api/saveTrip', { method: 'POST', body: JSON.stringify(preparedTripData) });
+    };
+    saveTripData();
+  }, []);
+
   return (
     <>
       <Animated.View style={[styles.bottomSheet, bottomSheetStyle]}>
@@ -85,7 +143,15 @@ const AlarmSetSheet = () => {
       <View style={styles.buttonCol}>
         <TouchableOpacity
           style={styles.useBtn}
-          onPress={() => router.replace('/gps-window/main-gps')}
+          onPress={() =>
+            router.replace({
+              pathname: '/gps-window/main-gps',
+              params: {
+                userId,
+                savedRouteId: savedRouteId.current,
+              },
+            })
+          }
         >
           <ThemedText type="button" style={{ color: 'white' }}>
             Use and Save the Alarm
@@ -111,10 +177,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 0,
     paddingBottom: 40,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#D3D3D3',
   },
   buttonCol: {
     flexDirection: 'column',
