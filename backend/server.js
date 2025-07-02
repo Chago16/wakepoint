@@ -5,18 +5,21 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const mapboxRoutes = require('./routes/mapboxRoutes');
-const directionsRoutes = require('./routes/directions'); // ✅ NEW
+const directionsRoutes = require('./routes/directions');
+const savedRoutes = require('./routes/savedRoutes'); // ✅ ADD THIS
 
 const app = express();
 const PORT = 3000;
 
-connectDB(); // ✅ connects to MongoDB Atlas
+connectDB();
 
-app.use(express.json()); // middleware
-app.use('/auth', authRoutes); // routes
+app.use(express.json());
+
+app.use('/auth', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api/mapbox', mapboxRoutes);
-app.use('/api', directionsRoutes); // ✅ REGISTERED
+app.use('/api', directionsRoutes);
+app.use('/api/saved-routes', savedRoutes); // ✅ ADD THIS
 
 app.get('/', (req, res) => {
   res.send('WakePoint Backend Server ✅');
