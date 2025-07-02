@@ -1,10 +1,11 @@
 import { ThemedText } from '@/components/ThemedText';
-import Mapbox, { Camera } from '@rnmapbox/maps';
+import Mapbox, { Camera, PointAnnotation, ShapeSource, LineLayer } from '@rnmapbox/maps';
 import { getRouteById } from '@/utils/savedRoutesAPI';
 import { WINDOW_HEIGHT } from '@utils/index';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { BASE_URL } from '@/config';
 import {
   Animated,
   AppState,
@@ -17,7 +18,7 @@ import {
   View,
 } from 'react-native';
 
-Mapbox.setAccessToken('your-mapbox-token');
+Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
 const BOTTOM_SHEET_MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const MAX_BOTTOM_SHEET_HEIGHT = WINDOW_HEIGHT * 0.76;
@@ -29,10 +30,13 @@ const MapScreen = () => {
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [routeLine, setRouteLine] = useState(null);
 
   const [fromName, setFromName] = useState('');
   const [toName, setToName] = useState('');
   const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [fromCoords, setFromCoords] = useState<[number, number] | null>(null);
+  const [toCoords, setToCoords] = useState<[number, number] | null>(null);
   const [alarmSound, setAlarmSound] = useState('');
   const [vibration, setVibration] = useState(false);
   const [notifEarly, setNotifEarly] = useState(0);
@@ -83,29 +87,54 @@ const MapScreen = () => {
   }, []);
 
   useEffect(() => {
-  (async () => {
-    if (!saved_route_id) {
-      console.warn('⚠️ No saved_route_id found in params');
-      return;
-    }
+    (async () => {
+      if (!saved_route_id) return;
 
-    console.log('🛰️ Saved Route ID:', saved_route_id);
-
-    try {
       const route = await getRouteById(saved_route_id as string);
+      const cps = route.checkpoints || [];
+      const from = route.from;
+      const to = route.destination;
+
+      setCheckpoints(cps);
       setFromName(route.from_name);
       setToName(route.destination_name);
-      setCheckpoints(route.checkpoints || []);
       setAlarmSound(route.alarm_sound);
       setVibration(route.vibration);
       setNotifEarly(route.notif_early);
-      setCenterCoordinate([route.from.lng, route.from.lat]);
-    } catch (err) {
-      console.error('❌ Failed to fetch saved route:', err);
-    }
-  })();
-}, [saved_route_id]);
 
+      if (from?.lng && from?.lat) {
+        const coords: [number, number] = [from.lng, from.lat];
+        setFromCoords(coords);
+        setCenterCoordinate(coords);
+      }
+
+      if (to?.lng && to?.lat) {
+        setToCoords([to.lng, to.lat]);
+      }
+
+      if (from && to) {
+        try {
+          const waypoints = cps.map(cp => [cp.lng, cp.lat]);
+          const body = { from: [from.lng, from.lat], to: [to.lng, to.lat], waypoints };
+
+          const response = await fetch(`${BASE_URL}/api/directions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+
+          const data = await response.json();
+          setRouteLine(data.geometry);
+        } catch (err) {
+          console.error('❌ Failed to draw route:', err);
+        }
+      }
+    })();
+  }, [saved_route_id]);
+
+  const renderMarker = (id: string, coords: [number, number]) => (
+    <PointAnnotation key={id} id={id} coordinate={coords} />
+  );
 
   return (
     <>
@@ -128,7 +157,23 @@ const MapScreen = () => {
           {mapReady && locationGranted && (
             <Mapbox.UserLocation visible={true} showsUserHeadingIndicator={true} />
           )}
+
+          {fromCoords && renderMarker('F', fromCoords)}
+          {toCoords && renderMarker('D', toCoords)}
+          {checkpoints.map((cp, idx) =>
+            renderMarker(`${idx + 1}`, [cp.lng, cp.lat])
+          )}
+
+          {routeLine && (
+            <ShapeSource id="routeLine" shape={{ type: 'Feature', geometry: routeLine }}>
+              <LineLayer
+                id="routeLineLayer"
+                style={{ lineColor: '#1DB954', lineWidth: 4, lineJoin: 'round', lineCap: 'round' }}
+              />
+            </ShapeSource>
+          )}
         </Mapbox.MapView>
+
 
         <Animated.View style={[styles.bottomSheet, { height: animatedHeight }]}>
           <View style={styles.draggableArea} {...panResponder.panHandlers}>
