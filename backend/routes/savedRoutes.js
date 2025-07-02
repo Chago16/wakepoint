@@ -23,4 +23,34 @@ router.get('/:user_id', async (req, res) => {
   }
 });
 
+// DELETE - Delete a saved route by its ID
+router.delete('/:saved_route_id', async (req, res) => {
+  try {
+    const { saved_route_id } = req.params;
+    const deleted = await SavedRoute.findOneAndDelete({ saved_route_id });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+
+    res.json({ message: 'Route deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET - Get one route by saved_route_id
+router.get('/id/:saved_route_id', async (req, res) => {
+  try {
+    const route = await SavedRoute.findOne({ saved_route_id: req.params.saved_route_id });
+    if (!route) {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+    res.json(route);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;

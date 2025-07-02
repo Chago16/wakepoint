@@ -43,3 +43,28 @@ export async function getRoutesByUserId(userId: string): Promise<SavedRoute[]> {
 
   return res.json();
 }
+
+export async function deleteRoute(saved_route_id: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/saved-routes/${saved_route_id}`, {
+    method: 'DELETE',
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to delete route');
+  }
+}
+
+export async function getRouteById(saved_route_id: string): Promise<SavedRoute> {
+  const res = await fetch(`${BASE_URL}/api/saved-routes/id/${saved_route_id}`);
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to fetch route by ID');
+  }
+
+  return res.json();
+}
+
+
+

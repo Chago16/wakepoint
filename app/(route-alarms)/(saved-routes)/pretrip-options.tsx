@@ -1,9 +1,9 @@
 import { ThemedText } from '@/components/ThemedText';
 import Mapbox, { Camera } from '@rnmapbox/maps';
+import { getRouteById } from '@/utils/savedRoutesAPI';
 import { WINDOW_HEIGHT } from '@utils/index';
-import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
-import { router, Stack } from 'expo-router';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -17,19 +17,27 @@ import {
   View,
 } from 'react-native';
 
-Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
+Mapbox.setAccessToken('your-mapbox-token');
 
 const BOTTOM_SHEET_MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const MAX_BOTTOM_SHEET_HEIGHT = WINDOW_HEIGHT * 0.76;
 const DRAG_THRESHOLD = 50;
 
 const MapScreen = () => {
-  const [centerCoordinate, setCenterCoordinate] = useState([120.9842, 14.5995]);
+  const { id: saved_route_id } = useLocalSearchParams();
+  const [centerCoordinate, setCenterCoordinate] = useState<[number, number]>([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const appState = useRef<AppStateStatus>(AppState.currentState);
 
+  const [fromName, setFromName] = useState('');
+  const [toName, setToName] = useState('');
+  const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [alarmSound, setAlarmSound] = useState('');
+  const [vibration, setVibration] = useState(false);
+  const [notifEarly, setNotifEarly] = useState(0);
+
+  const appState = useRef<AppStateStatus>(AppState.currentState);
   const animatedHeight = useRef(new Animated.Value(BOTTOM_SHEET_MIN_HEIGHT)).current;
   const currentHeight = useRef(BOTTOM_SHEET_MIN_HEIGHT);
 
@@ -40,39 +48,22 @@ const MapScreen = () => {
     return () => animatedHeight.removeListener(id);
   }, []);
 
-  const expandSheet = () => {
-    Animated.spring(animatedHeight, {
-      toValue: MAX_BOTTOM_SHEET_HEIGHT,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const collapseSheet = () => {
-    Animated.spring(animatedHeight, {
-      toValue: BOTTOM_SHEET_MIN_HEIGHT,
-      useNativeDriver: false,
-    }).start();
-  };
+  const expandSheet = () => Animated.spring(animatedHeight, { toValue: MAX_BOTTOM_SHEET_HEIGHT, useNativeDriver: false }).start();
+  const collapseSheet = () => Animated.spring(animatedHeight, { toValue: BOTTOM_SHEET_MIN_HEIGHT, useNativeDriver: false }).start();
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (e, gesture) => Math.abs(gesture.dy) > 10,
-      onPanResponderMove: (e, gesture) => {
-        const newHeight = currentHeight.current - gesture.dy;
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 10,
+      onPanResponderMove: (_, g) => {
+        const newHeight = currentHeight.current - g.dy;
         if (newHeight >= BOTTOM_SHEET_MIN_HEIGHT && newHeight <= MAX_BOTTOM_SHEET_HEIGHT) {
           animatedHeight.setValue(newHeight);
         }
       },
-      onPanResponderRelease: (e, gesture) => {
-        if (gesture.dy < -DRAG_THRESHOLD) {
-          expandSheet();
-        } else if (gesture.dy > DRAG_THRESHOLD) {
-          collapseSheet();
-        } else {
-          currentHeight.current > (BOTTOM_SHEET_MIN_HEIGHT + MAX_BOTTOM_SHEET_HEIGHT) / 2
-            ? expandSheet()
-            : collapseSheet();
-        }
+      onPanResponderRelease: (_, g) => {
+        if (g.dy < -DRAG_THRESHOLD) expandSheet();
+        else if (g.dy > DRAG_THRESHOLD) collapseSheet();
+        else currentHeight.current > (BOTTOM_SHEET_MIN_HEIGHT + MAX_BOTTOM_SHEET_HEIGHT) / 2 ? expandSheet() : collapseSheet();
       },
     })
   ).current;
@@ -92,22 +83,34 @@ const MapScreen = () => {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      const granted = await requestLocationPermissions();
-      if (granted) {
-        setLocationGranted(true);
-        const location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-        setCenterCoordinate([longitude, latitude]);
-      }
-    })();
-  }, []);
+  (async () => {
+    if (!saved_route_id) {
+      console.warn('⚠️ No saved_route_id found in params');
+      return;
+    }
+
+    console.log('🛰️ Saved Route ID:', saved_route_id);
+
+    try {
+      const route = await getRouteById(saved_route_id as string);
+      setFromName(route.from_name);
+      setToName(route.destination_name);
+      setCheckpoints(route.checkpoints || []);
+      setAlarmSound(route.alarm_sound);
+      setVibration(route.vibration);
+      setNotifEarly(route.notif_early);
+      setCenterCoordinate([route.from.lng, route.from.lat]);
+    } catch (err) {
+      console.error('❌ Failed to fetch saved route:', err);
+    }
+  })();
+}, [saved_route_id]);
+
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <View style={styles.statusBarOverlay} />
         <Mapbox.MapView
           style={styles.map}
           styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"
@@ -132,145 +135,84 @@ const MapScreen = () => {
             <View style={styles.dragHandle} />
           </View>
 
-          <View style={{ flex: 1 }}>
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={[styles.sheetContent, { flexGrow: 1 }]} // Add flexGrow here
-              showsVerticalScrollIndicator={false}
-            >
+          <ScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
+            <ThemedText type="titleSmall">Saved Route</ThemedText>
+            <ThemedText type="default">Review trip details before starting your journey.</ThemedText>
 
-
-              <ThemedText type="titleSmall" style={{ marginBottom: 4 }}>
-                Saved Route
-              </ThemedText>
-              <ThemedText type="default" style={{ marginBottom: 16 }}>
-                Review trip details before starting your journey.
-              </ThemedText>
-
-              <View style={{ position: 'relative', marginBottom: 16 }}>
-                {/* Vertical timeline line */}
-                <View style={styles.timelineLine} />
-
-                {/* Origin */}
-                <View style={styles.checkpoint}>
-                  <View style={styles.checkIconCircle} />
-                  <View style={styles.checkpointTextBox}>
-                    <ThemedText type="option">
-                      FROM
-                    </ThemedText>
-                    <ThemedText type="defaultSemiBold">
-                      Sonoma Residences, Sta. Cruz, Sta. Maria, Bulacan
-                    </ThemedText>
-                  </View>
-                </View>
-
-                {/* Checkpoints */}
-                {[1, 2, 3].map((i) => (
-                  <View key={i} style={styles.checkpoints}>
-                    <View style={styles.line} />
-                    <View style={styles.checkpointDot} />
-                    <View style={styles.checkpointDetail}>
-                      <ThemedText type="option">{`CHECKPOINT ${i}`}</ThemedText>
-                      <ThemedText type="default">{`Address of checkpoint ${i} here`}</ThemedText>
-                    </View>
-                  </View>
-                ))}
-
-                {/* Destination */}
-                <View style={styles.checkpoint}>
-                  <View style={styles.finalPin} />
-                  <View style={styles.checkpointTextBox}>
-                    <ThemedText type="option">
-                      DESTINATION
-                    </ThemedText>
-                    <ThemedText type="defaultSemiBold">
-                      Anonas Street, Sta. Mesa, Manila
-                    </ThemedText>
-                  </View>
-                </View>
+            <View style={{ marginTop: 20 }}>
+              <View style={styles.infoBox}>
+                <ThemedText type="option">FROM</ThemedText>
+                <ThemedText type="defaultSemiBold">{fromName}</ThemedText>
               </View>
 
-              <View style={styles.separator} />
+              {checkpoints.map((cp, idx) => (
+                <View key={idx} style={styles.infoBox}>
+                  <ThemedText type="option">{`CHECKPOINT ${idx + 1}`}</ThemedText>
+                  <ThemedText type="default">Lat: {cp.lat}, Lng: {cp.lng}</ThemedText>
+                </View>
+              ))}
 
-              <ThemedText type="titleSmall" style={{ marginBottom: 12, marginTop: 20 }}>
-                Alarm Settings
-              </ThemedText>
-
-              <View style={styles.settingRow}>
-                {[
-                  { label: 'Alarm Sound', value: true },
-                  { label: 'Vibration', value: true },
-                  { label: 'Notify Earlier', value: false },
-                ].map((item, idx) => {
-                  const isEnabled = item.value;
-                  return (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.settingItem
-                      ]}
-                    >
-                      <ThemedText
-                        type="defaultSemiBold"
-                        style={{ color: isEnabled ? 'black' : '#D4D4D4' }}
-                      >
-                        {item.label}
-                      </ThemedText>
-                      <ThemedText
-                        type="default"
-                        style={{ color: isEnabled ? 'black' : '#D4D4D4' }}
-                      >
-                        {isEnabled ? 'Enabled' : 'Disabled'}
-                      </ThemedText>
-                    </View>
-                  );
-                })}
+              <View style={styles.infoBox}>
+                <ThemedText type="option">DESTINATION</ThemedText>
+                <ThemedText type="defaultSemiBold">{toName}</ThemedText>
               </View>
-            </ScrollView>
+            </View>
+
+            {/* Alarm Settings - keep original style */}
+            <ThemedText type="titleSmall" style={{ marginBottom: 12, marginTop: 20 }}>
+              Alarm Settings
+            </ThemedText>
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingItem}>
+                <ThemedText type="defaultSemiBold">Alarm Sound</ThemedText>
+                <ThemedText type="default">{alarmSound || 'None'}</ThemedText>
+              </View>
+
+              <View style={styles.settingItem}>
+                <ThemedText type="defaultSemiBold">Vibration</ThemedText>
+                <ThemedText type="default">{vibration ? 'Enabled' : 'Disabled'}</ThemedText>
+              </View>
+
+              <View style={styles.settingItem}>
+                <ThemedText type="defaultSemiBold">Notify Earlier</ThemedText>
+                <ThemedText type="default">
+                  {notifEarly === 300
+                    ? '300 meters'
+                    : notifEarly === 500
+                    ? '500 meters'
+                    : notifEarly === 700
+                    ? '700 meters'
+                    : 'None'}
+                </ThemedText>
+              </View>
+            </View>
+
+
+          </ScrollView>
+
+
+
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
+              <ThemedText type="button" style={{ color: '#104E3B' }}>Cancel</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.useAlarmBtn} onPress={() => setShowModal(true)}>
+              <ThemedText type="button" style={{ color: 'white' }}>Use Alarm</ThemedText>
+            </TouchableOpacity>
           </View>
         </Animated.View>
 
-        <View style={styles.separator} />
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.cancelBtn}
-            onPress={() => router.back()}
-          >
-            <ThemedText type="button" style={{ color: '#104E3B' }}>
-              Cancel
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.useAlarmBtn}
-            onPress={() => setShowModal(true)}
-          >
-            <ThemedText type="button" style={{ color: 'white' }}>
-              Use Alarm
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
         {showModal && (
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
-              <ThemedText type="title" style={{ fontSize: 20, textAlign: 'center' }}>
-                Start Trip?
-              </ThemedText>
-              <ThemedText type="default" style={{ marginTop: 8, marginBottom: 24, textAlign: 'center' }}>
-                Route edits won’t be allowed after this.
-              </ThemedText>
-
+              <ThemedText type="title">Start Trip?</ThemedText>
+              <ThemedText type="default" style={{ marginVertical: 12 }}>Route edits won’t be allowed after this.</ThemedText>
               <View style={styles.modalButtonRow}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.modalCancel}>
                   <ThemedText type="button" style={{ color: '#104E3B' }}>Cancel</ThemedText>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowModal(false);
-                    router.push('/gps-window/main-gps');
-                  }}
-                  style={styles.modalConfirm}
-                >
+                <TouchableOpacity onPress={() => router.push('/gps-window/main-gps')} style={styles.modalConfirm}>
                   <ThemedText type="button" style={{ color: 'white' }}>Confirm</ThemedText>
                 </TouchableOpacity>
               </View>
@@ -287,15 +229,6 @@ export default MapScreen;
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  statusBarOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 40,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    zIndex: 99,
-  },
   bottomSheet: {
     position: 'absolute',
     width: '100%',
@@ -314,6 +247,21 @@ const styles = StyleSheet.create({
       },
     }),
   },
+    infoBox: {
+    backgroundColor: '#F1F5F4',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 90,
+    justifyContent: 'space-between',
+  },
+  settingItem: {
+    flexDirection: 'column',
+  },
   draggableArea: {
     width: 132,
     height: 32,
@@ -331,86 +279,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 0,
     paddingBottom: 20,
-  },
-  checkpoint: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    borderRadius:20,
-  },
-  checkpoints: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    paddingLeft: 20,
-  },
-  checkIconCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 4.5,
-    borderColor: '#8CC63F',
-    marginTop: 8,
-    marginRight: 12,
-  },
-  verticalLine: {
-    width: 2,
-    height: '100%',
-    backgroundColor: '#8CC63F',
-    marginRight: 20,
-    marginLeft: 7,
-    position: 'absolute',
-    top: 16,
-    left: 7,
-    zIndex: -1,
-  },
-  checkpointDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#2C7865',
-    marginRight: 12,
-    marginTop: 4,
-  },
-  finalPin: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#104E3B',
-    marginTop: 8,
-    marginRight: 12,
-  },
-  checkpointTextBox: {
-    backgroundColor: '#F1F1F1',
-    padding: 10,
-    borderRadius: 6,
-    flex: 1,
-  },
-  checkpointDetail: {
-    backgroundColor: '#F1F1F1',
-    padding: 10,
-    borderRadius: 10,
-    flex: 1,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#D3D3D3',
-    marginVertical: 0,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 90,
-    justifyContent: 'space-between',
-  },
-  settingItem: {
-    flexDirection: 'column',
-  },
-  togglePlaceholder: {
-    width: 45,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E0E0E0',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -477,23 +345,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginLeft: 8,
-  },
-  timelineLine: {
-  position: 'absolute',
-  left: 7.3,
-  top:20,
-  bottom: 55,
-  width: 2,
-  backgroundColor: '#8CC63F',
-  zIndex: -1,
-  },
-  line: {
-    position: 'absolute',
-    top: 9.8,          
-    left: 9,         
-    width: 11,        
-    height: 2,        
-    backgroundColor: '#8CC63F',
-    zIndex: -1,
   },
 });

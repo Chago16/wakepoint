@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { deleteRoute } from '@/utils/savedRoutesAPI';
 import {
   StyleSheet,
   Animated,
@@ -16,6 +17,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HEADER_HEIGHT = SCREEN_HEIGHT * 0.18;
@@ -107,10 +109,15 @@ export default function ChooseScreen() {
   }, [isLongPressed]);
 
   const handleUseAsAlarm = () => {
-    if (selectedIndex !== null) {
-      router.push('/pretrip-options');
-    }
-  };
+  if (selectedIndex !== null) {
+    const route = savedRoutes[selectedIndex];
+    router.push({
+      pathname: '/pretrip-options',
+      params: { id: route.saved_route_id },
+    });
+  }
+};
+
 
   const handleEdit = () => {
     if (selectedIndex !== null) {
@@ -126,12 +133,22 @@ export default function ChooseScreen() {
   };
 
   const handleDelete = async () => {
-    if (selectedIndex !== null) {
-      const route = savedRoutes[selectedIndex];
-      console.log('Delete:', route);
-      // implement delete API here if needed
+  if (selectedIndex !== null) {
+    const route = savedRoutes[selectedIndex];
+    try {
+      await deleteRoute(route.saved_route_id);
+      // Refresh list after delete
+      const userId = await AsyncStorage.getItem('user_id');
+      if (!userId) return;
+      const updatedRoutes = await getRoutesByUserId(userId);
+      setSavedRoutes(updatedRoutes);
+      setIsLongPressed(false);
+      setSelectedIndex(null);
+    } catch (err) {
+      console.error('Delete failed:', err);
     }
-  };
+  }
+};
 
   return (
     <>
