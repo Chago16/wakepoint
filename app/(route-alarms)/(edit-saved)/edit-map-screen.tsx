@@ -9,13 +9,14 @@ import { TripMarkers } from '@/components/TripMarkers';
 import { useTripPoints } from '@/hooks/useTripPoints';
 import { getAddressFromCoordinates } from '@/utils/geocodingService';
 import { requestLocationPermissions } from '@/utils/permissions';
+import { getRouteById } from '@/utils/savedRoutesAPI';
 import { BASE_URL } from '@config';
 import BottomSheetSwitcher from './edit-bottom-sheet-switcher';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
 const MapScreen = () => {
-  const { mode: initialMode } = useLocalSearchParams();
+  const { mode: initialMode, id: saved_route_id } = useLocalSearchParams();
   const [mode, setMode] = useState<string>(initialMode ?? 'edit');
   const [centerCoordinate, setCenterCoordinate] = useState<[number, number]>([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
@@ -35,24 +36,58 @@ const MapScreen = () => {
     setToCoords,
     checkpoints,
     setCheckpoints,
-    resetTrip, // <-- here
+    resetTrip,
   } = useTripPoints();
 
-  // 🆕 Alarm state added
   const [alarmSoundIndex, setAlarmSoundIndex] = useState(0);
   const [notifyEarlierIndex, setNotifyEarlierIndex] = useState(0);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
 
+  // 🆕 Fetch saved route if SRID is passed
+  useEffect(() => {
+    if (!saved_route_id) return;
+
+    (async () => {
+      try {
+        const route = await getRouteById(saved_route_id as string);
+        const from = route.from;
+        const to = route.destination;
+        const cps = route.checkpoints || [];
+
+        setFromCoords([from.lng, from.lat]);
+        setToCoords([to.lng, to.lat]);
+        setCheckpoints(
+          cps.map((cp: any, index: number) => ({
+            id: `cp-${index}`,
+            coords: [cp.lng, cp.lat],
+            name: '',
+            search: '',
+          }))
+        );
+
+        setFromPlaceName(route.from_name);
+        setToPlaceName(route.destination_name);
+
+        setAlarmSoundIndex(route.alarm_sound_index ?? 0);
+        setNotifyEarlierIndex(route.notif_early ?? 0);
+        setVibrationEnabled(!!route.vibration);
+
+        setCenterCoordinate([from.lng, from.lat]);
+      } catch (err) {
+        console.error('❌ Failed to load saved route:', err);
+      }
+    })();
+  }, [saved_route_id]);
+
   useEffect(() => {
     return () => {
-      resetTrip(); // new reset method
+      resetTrip();
       setFromPlaceName('');
       setToPlaceName('');
       setActivePoint(null);
       setRouteGeoJSON(null);
     };
   }, []);
-
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
@@ -74,57 +109,34 @@ const MapScreen = () => {
         setLocationGranted(true);
         const location = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = location.coords;
-        setCenterCoordinate([longitude, latitude]);
+        // setCenterCoordinate([longitude, latitude]);
       }
     })();
   }, []);
 
   useEffect(() => {
     if (fromCoords && toCoords) {
-      console.log('✅ Detected both from and to coords, fetching route...');
       fetchSnappedRoute();
-    } else {
-      console.log('🟡 Missing coords:', { fromCoords, toCoords });
     }
   }, [fromCoords, toCoords, checkpoints]);
 
   const fetchSnappedRoute = async () => {
-    if (!fromCoords || !toCoords) {
-      console.warn('⚠️ fetchSnappedRoute called without from/to coords.');
-      return;
-    }
+    if (!fromCoords || !toCoords) return;
 
     const waypointCoords = checkpoints.map(cp => cp.coords);
-    console.log('📦 Fetching directions with:', {
-      from: fromCoords,
-      to: toCoords,
-      waypoints: waypointCoords,
-    });
 
     try {
       const res = await fetch(`${BASE_URL}/api/directions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: fromCoords,
-          to: toCoords,
-          waypoints: waypointCoords,
-        }),
+        body: JSON.stringify({ from: fromCoords, to: toCoords, waypoints: waypointCoords }),
       });
 
       const data = await res.json();
 
-      if (!data?.geometry) {
-        console.error('❌ No geometry returned in API response:', data);
-        return;
+      if (data?.geometry) {
+        setRouteGeoJSON({ type: 'Feature', geometry: data.geometry });
       }
-
-      setRouteGeoJSON({
-        type: 'Feature',
-        geometry: data.geometry,
-      });
-
-      console.log('✅ Route received and drawn!', data);
     } catch (err) {
       console.error('🔥 Error fetching route:', err);
     }
@@ -134,9 +146,7 @@ const MapScreen = () => {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-
         {mode !== 'alarm' && <InstructionBanner />}
-        
         <Mapbox.MapView
           style={styles.map}
           styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"
@@ -168,9 +178,6 @@ const MapScreen = () => {
               );
               setCheckpoints(updated);
             }
-
-            console.log('Tapped coords:', coords);
-            if (addressResult) console.log('Reverse address:', addressResult.address);
           }}
         >
           <Camera
@@ -184,12 +191,7 @@ const MapScreen = () => {
             <Mapbox.ShapeSource id="routeSource" shape={routeGeoJSON}>
               <Mapbox.LineLayer
                 id="routeLine"
-                style={{
-                  lineColor: '#ADCE7D',
-                  lineWidth: 5,
-                  lineCap: 'round',
-                  lineJoin: 'round',
-                }}
+                style={{ lineColor: '#ADCE7D', lineWidth: 5, lineCap: 'round', lineJoin: 'round' }}
               />
             </Mapbox.ShapeSource>
           )}
@@ -204,14 +206,10 @@ const MapScreen = () => {
         <BottomSheetSwitcher
           mode={mode}
           setMode={setMode}
-
-          // ✅ These were missing
           fromCoords={fromCoords}
           toCoords={toCoords}
-
           setFromCoords={setFromCoords}
           setToCoords={setToCoords}
-
           activePoint={activePoint}
           setActivePoint={setActivePoint}
           fromPlaceName={fromPlaceName}
@@ -237,10 +235,6 @@ const MapScreen = () => {
 export default MapScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  map: { flex: 1 },
 });

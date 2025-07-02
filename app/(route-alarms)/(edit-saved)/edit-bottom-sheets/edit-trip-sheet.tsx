@@ -258,7 +258,7 @@ export const EditTripSheet: React.FC<Props> = ({
                   <ThemedText type="default">{'<'}</ThemedText>
                 </TouchableOpacity>
                 <ThemedText type="default" style={{ marginHorizontal: 12 }}>
-                  {notifyDistances[notifyEarlierIndex]} m
+                  {notifyDistances[notifyEarlierIndex] + 'm'}
                 </ThemedText>
                 <TouchableOpacity onPress={() => setNotifyEarlierIndex(cycleRight(notifyEarlierIndex, notifyDistances))}>
                   <ThemedText type="default">{'>'}</ThemedText>
