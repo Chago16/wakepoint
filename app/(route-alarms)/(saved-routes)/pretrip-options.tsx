@@ -1,11 +1,13 @@
 import { ThemedText } from '@/components/ThemedText';
-import Mapbox, { Camera, PointAnnotation, ShapeSource, LineLayer } from '@rnmapbox/maps';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { BASE_URL } from '@/config';
+import { getAddressFromCoordinates } from '@/utils/geocodingService';
 import { getRouteById } from '@/utils/savedRoutesAPI';
+import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
 import { WINDOW_HEIGHT } from '@utils/index';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { BASE_URL } from '@/config';
 import {
   Animated,
   AppState,
@@ -14,6 +16,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -23,6 +26,50 @@ Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW
 const BOTTOM_SHEET_MIN_HEIGHT = WINDOW_HEIGHT * 0.23;
 const MAX_BOTTOM_SHEET_HEIGHT = WINDOW_HEIGHT * 0.76;
 const DRAG_THRESHOLD = 50;
+
+const PinIcon = ({ type, index }: { type: 'from' | 'to' | 'checkpoint'; index?: number }) => {
+  if (type === 'checkpoint') {
+    return (
+      <View
+        style={{
+          backgroundColor: '#2C7865',
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.3,
+          shadowRadius: 1,
+          elevation: 2,
+        }}
+      >
+        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>{index?.toString() ?? '?'}</Text>
+      </View>
+    );
+  }
+
+  const iconName = type === 'from' ? 'location' : 'flag';
+  const iconColor = type === 'from' ? '#8CC63F' : '#104E3B';
+
+  return (
+    <View
+      style={{
+        backgroundColor: 'white',
+        padding: 6,
+        borderRadius: 20,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+      }}
+    >
+      <IconSymbol name={iconName} color={iconColor} size={20} />
+    </View>
+  );
+};
 
 const MapScreen = () => {
   const { id: saved_route_id } = useLocalSearchParams();
@@ -35,6 +82,7 @@ const MapScreen = () => {
   const [fromName, setFromName] = useState('');
   const [toName, setToName] = useState('');
   const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [checkpointNames, setCheckpointNames] = useState<string[]>([]);
   const [fromCoords, setFromCoords] = useState<[number, number] | null>(null);
   const [toCoords, setToCoords] = useState<[number, number] | null>(null);
   const [alarmSound, setAlarmSound] = useState('');
@@ -96,6 +144,15 @@ const MapScreen = () => {
       const to = route.destination;
 
       setCheckpoints(cps);
+
+      const names = await Promise.all(
+        cps.map(async (cp) => {
+          const reverse = await getAddressFromCoordinates(cp.lat, cp.lng);
+          return reverse?.address || `Unnamed checkpoint`;
+        })
+      );
+      setCheckpointNames(names);
+
       setFromName(route.from_name);
       setToName(route.destination_name);
       setAlarmSound(route.alarm_sound);
@@ -132,10 +189,6 @@ const MapScreen = () => {
     })();
   }, [saved_route_id]);
 
-  const renderMarker = (id: string, coords: [number, number]) => (
-    <PointAnnotation key={id} id={id} coordinate={coords} />
-  );
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -154,21 +207,43 @@ const MapScreen = () => {
             animationMode="flyTo"
             animationDuration={1000}
           />
+
           {mapReady && locationGranted && (
             <Mapbox.UserLocation visible={true} showsUserHeadingIndicator={true} />
           )}
 
-          {fromCoords && renderMarker('F', fromCoords)}
-          {toCoords && renderMarker('D', toCoords)}
-          {checkpoints.map((cp, idx) =>
-            renderMarker(`${idx + 1}`, [cp.lng, cp.lat])
+          {fromCoords && (
+            <PointAnnotation id="from" coordinate={fromCoords}>
+              <PinIcon type="from" />
+            </PointAnnotation>
           )}
+
+          {toCoords && (
+            <PointAnnotation id="to" coordinate={toCoords}>
+              <PinIcon type="to" />
+            </PointAnnotation>
+          )}
+
+          {checkpoints.map((cp, idx) => (
+            <PointAnnotation
+              key={`checkpoint-${idx}`}
+              id={`checkpoint-${idx}`}
+              coordinate={[cp.lng, cp.lat]}
+            >
+              <PinIcon type="checkpoint" index={idx + 1} />
+            </PointAnnotation>
+          ))}
 
           {routeLine && (
             <ShapeSource id="routeLine" shape={{ type: 'Feature', geometry: routeLine }}>
               <LineLayer
                 id="routeLineLayer"
-                style={{ lineColor: '#1DB954', lineWidth: 4, lineJoin: 'round', lineCap: 'round' }}
+                style={{
+                  lineColor: '#ADCE7D',
+                  lineWidth: 5,
+                  lineJoin: 'round',
+                  lineCap: 'round',
+                }}
               />
             </ShapeSource>
           )}
@@ -184,24 +259,40 @@ const MapScreen = () => {
             <ThemedText type="titleSmall">Saved Route</ThemedText>
             <ThemedText type="default">Review trip details before starting your journey.</ThemedText>
 
-            <View style={{ marginTop: 20 }}>
-              <View style={styles.infoBox}>
+            <View style={{ position: 'relative', marginTop: 20, marginBottom: 16 }}>
+            <View style={styles.timelineLine} />
+            
+            <View style={styles.checkpointRow}>
+              <View style={styles.fromCircle} />
+              <View style={styles.checkpointTextBox}>
                 <ThemedText type="option">FROM</ThemedText>
-                <ThemedText type="defaultSemiBold">{fromName}</ThemedText>
-              </View>
-
-              {checkpoints.map((cp, idx) => (
-                <View key={idx} style={styles.infoBox}>
-                  <ThemedText type="option">{`CHECKPOINT ${idx + 1}`}</ThemedText>
-                  <ThemedText type="default">Lat: {cp.lat}, Lng: {cp.lng}</ThemedText>
-                </View>
-              ))}
-
-              <View style={styles.infoBox}>
-                <ThemedText type="option">DESTINATION</ThemedText>
-                <ThemedText type="defaultSemiBold">{toName}</ThemedText>
+                <ThemedText type="defaultSemiBold">{fromName || 'Unknown location'}</ThemedText>
               </View>
             </View>
+
+            {checkpoints.map((cp, idx) => (
+              <View key={idx} style={styles.checkpointRow}>
+                <View style={styles.line} />
+                <View style={styles.checkpointDot} />
+                <View style={styles.checkpointTextBox}>
+                  <ThemedText type="option">{`CHECKPOINT ${idx + 1}`}</ThemedText>
+                  <ThemedText type="default">
+                    {checkpointNames[idx] || `Checkpoint ${idx + 1}`}
+                  </ThemedText>
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.checkpointRow}>
+              <View style={styles.finalPin} />
+              <View style={styles.checkpointTextBox}>
+                <ThemedText type="option">DESTINATION</ThemedText>
+                <ThemedText type="defaultSemiBold">{toName || 'Unknown location'}</ThemedText>
+              </View>
+            </View>
+          </View>
+
+           <View style={styles.separator} />
 
             {/* Alarm Settings - keep original style */}
             <ThemedText type="titleSmall" style={{ marginBottom: 12, marginTop: 20 }}>
@@ -237,7 +328,8 @@ const MapScreen = () => {
           </ScrollView>
 
 
-
+          
+          <View style={styles.separator} />
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
               <ThemedText type="button" style={{ color: '#104E3B' }}>Cancel</ThemedText>
@@ -251,7 +343,7 @@ const MapScreen = () => {
         {showModal && (
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
-              <ThemedText type="title">Start Trip?</ThemedText>
+              <ThemedText type="title" style={{ fontSize: 20, textAlign: 'center' }}>Start Trip? </ThemedText>
               <ThemedText type="default" style={{ marginVertical: 12 }}>Route edits won’t be allowed after this.</ThemedText>
               <View style={styles.modalButtonRow}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.modalCancel}>
@@ -291,6 +383,11 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 2, height: 2 },
       },
     }),
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#D3D3D3',
+    marginVertical: 0,
   },
     infoBox: {
     backgroundColor: '#F1F5F4',
@@ -375,20 +472,74 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   modalCancel: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: '#104E3B',
     paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginRight: 8,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#104E3B',
+    borderRadius: 8,
   },
   modalConfirm: {
-    flex: 1,
-    backgroundColor: '#104E3B',
     paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginLeft: 8,
+    paddingHorizontal: 20,
+    backgroundColor: '#104E3B',
+    borderRadius: 8,
   },
+
+  timelineLine: {
+  position: 'absolute',
+  left: 7.3,
+  top: 20,
+  bottom: 55,
+  width: 2,
+  backgroundColor: '#8CC63F',
+  zIndex: -1,
+},
+  line: {
+    position: 'absolute',
+    top: 9.8,
+    left: 9,
+    width: 11,
+    height: 2,
+    backgroundColor: '#8CC63F',
+    zIndex: -1,
+  },
+checkpointRow: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  marginBottom: 16,
+  paddingLeft: 0,
+},
+checkpointDot: {
+  width: 12,
+  height: 12,
+  borderRadius: 6,
+  backgroundColor: '#2C7865',
+  marginLeft: 18,
+  marginRight: 12,
+  marginTop: 4,
+},
+finalPin: {
+  width: 16,
+  height: 16,
+  borderRadius: 8,
+  backgroundColor: '#104E3B',
+  marginRight: 12,
+  marginTop: 4,
+},
+fromCircle: {
+  width: 16,
+  height: 16,
+  borderRadius: 8,
+  borderWidth: 4.5,
+  borderColor: '#8CC63F',
+  marginRight: 12,
+  marginTop: 4,
+},
+checkpointTextBox: {
+  flex: 1,
+  padding: 10,
+  backgroundColor: '#F1F1F1',
+  borderRadius: 10,
+},
+
 });

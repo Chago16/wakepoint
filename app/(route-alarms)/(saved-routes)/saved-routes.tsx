@@ -1,17 +1,16 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { getRoutesByUserId } from '@/utils/savedRoutesAPI';
 import { getAddressFromCoordinates } from '@/utils/geocodingService';
+import { deleteRoute, getRoutesByUserId } from '@/utils/savedRoutesAPI';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { deleteRoute } from '@/utils/savedRoutesAPI';
 import {
-  StyleSheet,
   Animated,
   Dimensions,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -164,10 +163,10 @@ export default function ChooseScreen() {
                 <ThemedText type="defaultSemiBold" style={styles.backText}>Back</ThemedText>
               </View>
               <View style={styles.headerTitleContainer}>
-                <ThemedText type="titleLarge" style={{ fontSize: 28, color: 'white' }}>
+                <ThemedText type="titleLarge" style={{ fontSize: 28, color: 'white', lineHeight: 35}}>
                   Saved Routes
                 </ThemedText>
-                <ThemedText type="subtitle1" style={{ fontSize: 15, color: 'white' }}>
+                <ThemedText type="subtitle1" style={{ fontSize: 15, color: 'white', lineHeight: 16 }}>
                   Select one to set as alarm
                 </ThemedText>
               </View>
@@ -175,9 +174,15 @@ export default function ChooseScreen() {
           ),
         }}
       />
+      
+      <View style={styles.instructionRow}>
+        <View style={styles.exclamationCircle}>
+          <ThemedText type="button" style={styles.exclamationMark}>!</ThemedText>
+        </View>
+        <ThemedText type="button" style={styles.instructionText}>Hold a route to Edit or Delete</ThemedText>
+      </View>
 
       <View style={styles.container}>
-        <Text style={styles.instructionText}>Hold a route to Edit or Delete</Text>
 
         {isLongPressed && (
           <TouchableWithoutFeedback
@@ -190,8 +195,8 @@ export default function ChooseScreen() {
           </TouchableWithoutFeedback>
         )}
 
-        <View style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+        <View style={{flex: 1 }}>
+          <ScrollView contentContainerStyle={{ paddingTop: 30, paddingBottom: 80 }}>
             {savedRoutes.map((route, index) => (
               <Animated.View
                 key={route.saved_route_id}
@@ -254,7 +259,7 @@ export default function ChooseScreen() {
           {isLongPressed && selectedIndex !== null && (
   <Animated.View style={[styles.absoluteCard, { transform: [{ scale: cardAnim }] }]}>
     <View style={[styles.tripCard, styles.tripCardSelected]}>
-      <View>
+      <View style={{position: 'relative'}}>
         <View style={styles.timelineLine} />
 
         {/* FROM */}
@@ -365,18 +370,43 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     position: 'relative',
   },
-  instructionText: {
-    paddingTop: 12,
-    paddingHorizontal: 24,
-    marginBottom: 10,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#444',
-    zIndex: 20,
-  },
+  instructionRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  position: 'absolute',
+  top: 130,
+  left: 0,
+  right: 0,
+  zIndex: 20,
+  backgroundColor: '#CFC8F3',
+  paddingVertical: 4,
+  paddingHorizontal: 30,
+},
+
+exclamationCircle: {
+  width: 22,
+  height: 22,
+  borderRadius: 11,
+  borderWidth: 2,
+  borderColor: "#444",
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 8,
+},
+
+exclamationMark: {
+  color: '#444',
+  fontSize: 12,
+  lineHeight: 12
+},
+
+instructionText: {
+  fontSize: 12,
+  color: '#444',
+},
+
   dimOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
@@ -498,9 +528,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-
-
-
   timelineLine: {
     position: 'absolute',
     left: 7.3,
@@ -508,7 +535,7 @@ const styles = StyleSheet.create({
     bottom: 20,
     width: 2,
     backgroundColor: '#104E3B',
-    zIndex: -1,
+    zIndex: 999,
     },
   line: {
     position: 'absolute',
@@ -517,7 +544,7 @@ const styles = StyleSheet.create({
     width: 11,        
     height: 2,        
     backgroundColor: '#104E3B',
-    zIndex: -1,
+    zIndex: 999,
   },
   checkpoint: {
     flexDirection: 'row',

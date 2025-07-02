@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
+import { handleLogin } from '@controllers/authController';
 import { router, Stack } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -9,7 +10,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { handleLogin } from '@controllers/authController';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -55,19 +55,6 @@ export default function LoginScreen() {
             onChangeText={setPassword}
           />
 
-          <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => setKeepLoggedIn(prev => !prev)}
-          >
-            <View style={[styles.checkbox, keepLoggedIn && styles.checkedBox]} />
-            <ThemedText
-              style={[styles.checkboxlabel, keepLoggedIn && styles.checkedBoxlabel]}
-              type="defaultSemiBold"
-            >
-              Keep me logged in
-            </ThemedText>
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.button} onPress={() => handleLogin(email, password)}>
             <ThemedText type="button" style={{ color: 'white' }}>LOGIN</ThemedText>
           </TouchableOpacity>
@@ -108,7 +95,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 15,
+    marginTop: 55,
     elevation: 5,
   },
   checkboxContainer: {
