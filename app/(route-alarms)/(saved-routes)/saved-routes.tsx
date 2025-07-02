@@ -1,13 +1,16 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { getRoutesByUserId } from '@/utils/savedRoutesAPI';
+import { getAddressFromCoordinates } from '@/utils/geocodingService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { router, Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  StyleSheet,
   Animated,
   Dimensions,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -17,63 +20,46 @@ import {
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HEADER_HEIGHT = SCREEN_HEIGHT * 0.18;
 
-const sampleRoutes = [
-  {
-    start: 'Home',
-    checkpoints: ['Checkpoint A', 'Checkpoint B'],
-    destination: 'Office',
-  },
-  {
-    start: 'Home',
-    checkpoints: ['Checkpoint A', 'Checkpoint B'],
-    destination: 'Office',
-  },
-  {
-    start: 'Home',
-    checkpoints: ['Checkpoint A', 'Checkpoint B'],
-    destination: 'Office',
-  },
-  {
-    start: 'Home',
-    checkpoints: ['Checkpoint A', 'Checkpoint B'],
-    destination: 'Office',
-  },
-  {
-    start: 'School',
-    checkpoints: ['Checkpoint 1', 'Checkpoint 2'],
-    destination: 'Mall',
-  },
-  {
-    start: 'Gym',
-    checkpoints: ['Checkpoint X'],
-    destination: 'Coffee Shop',
-  },
-];
-
 export default function ChooseScreen() {
+  const [savedRoutes, setSavedRoutes] = useState<any[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isLongPressed, setIsLongPressed] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
   const bottomSpacerAnim = useRef(new Animated.Value(0)).current;
-  const heightAnims = useRef(sampleRoutes.map(() => new Animated.Value(1))).current;
+  const heightAnims = useRef<any[]>([]).current;
 
-  const handleUseAsAlarm = () => {
-    if (selectedIndex !== null) {
-      console.log('Selected Route:', sampleRoutes[selectedIndex]);
-      router.push('/pretrip-options');
-    }
-  };
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      const userId = await AsyncStorage.getItem('user_id');
+      if (!userId) return;
 
-  const handleEdit = () => {
-    console.log('Edit:', sampleRoutes[selectedIndex!]);
-    router.push('/(edit-saved)/edit-map-screen?mode=edit');
-  };
+      const rawRoutes = await getRoutesByUserId(userId);
 
-  const handleDelete = () => {
-    console.log('Delete:', sampleRoutes[selectedIndex!]);
-  };
+      const routesWithCheckpointNames = await Promise.all(
+        rawRoutes.map(async (route: any) => {
+          const checkpointNames = await Promise.all(
+            route.checkpoints.map(async (cp: any) => {
+              console.log('🧭 Checkpoint:', cp);
+              const reverse = await getAddressFromCoordinates(cp.lng, cp.lat);
+              return reverse?.address || 'Unnamed';
+            })
+          );
+
+          return {
+            ...route,
+            checkpointNames,
+          };
+        })
+      );
+
+      setSavedRoutes(routesWithCheckpointNames);
+      heightAnims.splice(0, heightAnims.length, ...routesWithCheckpointNames.map(() => new Animated.Value(1)));
+    };
+
+    fetchRoutes();
+  }, []);
 
   const animateHideSelectedCard = (index: number) => {
     Animated.timing(heightAnims[index], {
@@ -120,6 +106,33 @@ export default function ChooseScreen() {
     ]).start();
   }, [isLongPressed]);
 
+  const handleUseAsAlarm = () => {
+    if (selectedIndex !== null) {
+      router.push('/pretrip-options');
+    }
+  };
+
+  const handleEdit = () => {
+    if (selectedIndex !== null) {
+      const route = savedRoutes[selectedIndex];
+      router.push({
+        pathname: '/(edit-saved)/edit-map-screen',
+        params: {
+          mode: 'edit',
+          id: route.saved_route_id,
+        },
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (selectedIndex !== null) {
+      const route = savedRoutes[selectedIndex];
+      console.log('Delete:', route);
+      // implement delete API here if needed
+    }
+  };
+
   return (
     <>
       <Stack.Screen
@@ -134,10 +147,10 @@ export default function ChooseScreen() {
                 <ThemedText type="defaultSemiBold" style={styles.backText}>Back</ThemedText>
               </View>
               <View style={styles.headerTitleContainer}>
-                <ThemedText type="titleLarge" style={[styles.headerTitle, { fontSize: 28 }]}>
+                <ThemedText type="titleLarge" style={{ fontSize: 28, color: 'white' }}>
                   Saved Routes
                 </ThemedText>
-                <ThemedText type="subtitle1" style={[styles.headerSubtitle, { fontSize: 15 }]}>
+                <ThemedText type="subtitle1" style={{ fontSize: 15, color: 'white' }}>
                   Select one to set as alarm
                 </ThemedText>
               </View>
@@ -161,20 +174,14 @@ export default function ChooseScreen() {
         )}
 
         <View style={{ flex: 1 }}>
-          
           <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-            {sampleRoutes.map((route, index) => (
+            {savedRoutes.map((route, index) => (
               <Animated.View
-                key={index}
-                style={{
-                  overflow: 'hidden',
-                  marginTop: 0,
-                }}
+                key={route.saved_route_id}
+                style={{ overflow: 'hidden', transform: [{ scale: heightAnims[index] }] }}
               >
                 <TouchableOpacity
-                  onPress={() => {
-                    if (!isLongPressed) setSelectedIndex(index);
-                  }}
+                  onPress={() => !isLongPressed && setSelectedIndex(index)}
                   onLongPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setIsLongPressed(true);
@@ -187,135 +194,121 @@ export default function ChooseScreen() {
                     selectedIndex === index && styles.tripCardSelected,
                   ]}
                 >
-                  <View style={{position: 'relative'}}>
+                  <View>
                     <View style={styles.timelineLine} />
 
-                    {/* Starting Point */}
+                    {/* FROM */}
                     <View style={styles.checkpoint}>
                       <View style={styles.checkIconCircle} />
                       <View style={styles.checkpointTextBox}>
-                        <ThemedText type="defaultSemiBold">Starting point</ThemedText>
+                        <ThemedText type="defaultSemiBold">
+                          {route.from_name || 'Starting Point'}
+                        </ThemedText>
                       </View>
                     </View>
 
-                    {/* Checkpoints */}
-                    {route.checkpoints.map((cp, i) => (
+                    {/* CHECKPOINTS */}
+                    {route.checkpointNames?.map((cpName: string, i: number) => (
                       <View key={i} style={styles.checkpoints}>
                         <View style={styles.line} />
                         <View style={styles.checkpointDot} />
                         <View style={styles.checkpointDetail}>
-                          <ThemedText type="default">{cp}</ThemedText>
+                          <ThemedText type="default">{cpName}</ThemedText>
                         </View>
                       </View>
                     ))}
 
-                    {/* Destination */}
+                    {/* DESTINATION */}
                     <View style={styles.checkpoint}>
                       <View style={styles.finalPin} />
                       <View style={styles.checkpointTextBox}>
-                        <ThemedText type="defaultSemiBold">Destination</ThemedText>
-                      </View>
-                      <View style={styles.radioDotOuter}>
-                        {selectedIndex === index && <View style={styles.radioDotInner} />}
+                        <ThemedText type="defaultSemiBold">
+                          {route.destination_name || 'Destination'}
+                        </ThemedText>
                       </View>
                     </View>
                   </View>
                 </TouchableOpacity>
               </Animated.View>
             ))}
-
             <Animated.View style={{ height: bottomSpacerAnim }} />
           </ScrollView>
 
           {isLongPressed && selectedIndex !== null && (
-            <Animated.View
-              style={[
-                styles.absoluteCard,
-                {
-                  opacity: fadeAnim,
-                  transform: [
-                    {
-                      translateY: cardAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [50, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <TouchableOpacity
-                activeOpacity={0.95}
-                style={[styles.tripCard, styles.tripCardLongPressed]}
-              >
-                <View style={{ position: 'relative' }}>
-                  <View style={styles.timelineLine} />
+  <Animated.View style={[styles.absoluteCard, { transform: [{ scale: cardAnim }] }]}>
+    <View style={[styles.tripCard, styles.tripCardSelected]}>
+      <View>
+        <View style={styles.timelineLine} />
 
-                  {/* Starting Point */}
-                  <View style={styles.checkpoint}>
-                    <View style={styles.checkIconCircle} />
-                    <View style={styles.checkpointTextBox}>
-                      <ThemedText type="defaultSemiBold">Starting point</ThemedText>
-                    </View>
-                  </View>
-
-                  {/* Checkpoints */}
-                  {sampleRoutes[selectedIndex].checkpoints.map((cp, i) => (
-                    <View key={i} style={styles.checkpoints}>
-                      <View style={styles.line} />
-                      <View style={styles.checkpointDot} />
-                      <View style={styles.checkpointDetail}>
-                        <ThemedText type="default">{cp}</ThemedText>
-                      </View>
-                    </View>
-                  ))}
-
-                  {/* Destination */}
-                  <View style={styles.checkpoint}>
-                    <View style={styles.finalPin} />
-                    <View style={styles.checkpointTextBox}>
-                      <ThemedText type="defaultSemiBold">Destination</ThemedText>
-                    </View>
-                    <View style={styles.radioDotOuter}>
-                      <View style={styles.radioDotInner} />
-                    </View>
-                  </View>
-                </View>
-
-              </TouchableOpacity>
-            </Animated.View>
-          )}
+        {/* FROM */}
+        <View style={styles.checkpoint}>
+          <View style={styles.checkIconCircle} />
+          <View style={styles.checkpointTextBox}>
+            <ThemedText type="defaultSemiBold">
+              {savedRoutes[selectedIndex].from_name || 'Starting Point'}
+            </ThemedText>
+          </View>
         </View>
 
-        <View style={styles.bottomBar}>
-          {isLongPressed ? (
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-                <Text style={styles.useButtonText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
+        {/* CHECKPOINTS */}
+        {savedRoutes[selectedIndex].checkpointNames?.map((cpName: string, i: number) => (
+          <View key={i} style={styles.checkpoints}>
+            <View style={styles.line} />
+            <View style={styles.checkpointDot} />
+            <View style={styles.checkpointDetail}>
+              <ThemedText type="default">{cpName}</ThemedText>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.useButton,
-                selectedIndex === null && styles.useButtonDisabled,
-              ]}
-              onPress={handleUseAsAlarm}
-              disabled={selectedIndex === null}
-            >
-              <ThemedText type="button" style={[{ color: 'white' }]}>
-                Use as Alarm
-              </ThemedText>
-            </TouchableOpacity>
-          )}
+          </View>
+        ))}
+
+              {/* DESTINATION */}
+              <View style={styles.checkpoint}>
+                <View style={styles.finalPin} />
+                <View style={styles.checkpointTextBox}>
+                  <ThemedText type="defaultSemiBold">
+                    {savedRoutes[selectedIndex].destination_name || 'Destination'}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
+
+          {/* Bottom bar */}
+          <View style={styles.bottomBar}>
+            {isLongPressed ? (
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                  <Text style={styles.useButtonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.useButton,
+                  selectedIndex === null && styles.useButtonDisabled,
+                ]}
+                onPress={handleUseAsAlarm}
+                disabled={selectedIndex === null}
+              >
+                <ThemedText type="button" style={{ color: 'white' }}>
+                  Use as Alarm
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
     </>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   customHeader: {
