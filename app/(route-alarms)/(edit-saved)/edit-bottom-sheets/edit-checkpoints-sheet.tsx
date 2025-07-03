@@ -56,6 +56,7 @@ const EditCheckpointsSheet: React.FC<Props> = ({
 
   useEffect(() => {
     if (checkpoints.length === 0) {
+      console.log('Initial checkpoints:', checkpoints);
       const newId = Date.now().toString();
       setCheckpoints([{ id: newId, name: '', coords: null, search: '' }]);
       setActiveCheckpointId(newId);

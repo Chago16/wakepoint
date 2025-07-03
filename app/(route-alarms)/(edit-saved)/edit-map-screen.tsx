@@ -65,6 +65,25 @@ const MapScreen = () => {
           }))
         );
 
+        // Fetch address names for each checkpoint if missing
+        const resolvedCheckpoints = await Promise.all(
+          cps.map(async (cp: any, index: number) => {
+            const coords: [number, number] = [cp.lng, cp.lat];
+            const addressResult = await getAddressFromCoordinates(cp.lat, cp.lng);
+            const resolvedName = addressResult?.address ?? '';
+
+            return {
+              id: `cp-${index}`,
+              coords,
+              name: resolvedName,
+              search: resolvedName,
+            };
+          })
+        );
+
+        setCheckpoints(resolvedCheckpoints);
+
+
         setFromPlaceName(route.from_name);
         setToPlaceName(route.destination_name);
 
