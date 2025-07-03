@@ -134,7 +134,7 @@ const AlarmSetSheet: React.FC<AlarmSetSheetProps> = ({
       router.replace({
         pathname: '/gps-window/main-gps',
         params: {
-          savedRouteId: savedRouteId.current as string,
+          id: savedRouteId.current as string,
         },
       });
     }
