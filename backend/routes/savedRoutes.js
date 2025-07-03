@@ -52,5 +52,27 @@ router.get('/id/:saved_route_id', async (req, res) => {
   }
 });
 
+// PUT - Update a saved route by its ID
+router.put('/:saved_route_id', async (req, res) => {
+  try {
+    const { saved_route_id } = req.params;
+    const updates = req.body;
+
+    const updatedRoute = await SavedRoute.findOneAndUpdate(
+      { saved_route_id },
+      { ...updates, date_modified: new Date().toISOString() },
+      { new: true }
+    );
+
+    if (!updatedRoute) {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+
+    res.json({ message: 'Route updated', route: updatedRoute });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 module.exports = router;

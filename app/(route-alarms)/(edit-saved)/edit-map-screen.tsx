@@ -43,6 +43,33 @@ const MapScreen = () => {
   const [notifyEarlierIndex, setNotifyEarlierIndex] = useState(0);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
 
+    const convertDistanceToIndex = (distance: number): number => {
+    switch (distance) {
+      case 300:
+        return 0;
+      case 500:
+        return 1;
+      case 700:
+        return 2;
+      default:
+        return -1;
+    }
+  };
+
+  const convertAlarmToIndex = (alarm: string): number => {
+  switch (alarm) {
+    case 'alarm1':
+      return 0;
+    case 'alarm2':
+      return 1;
+    case 'alarm3':
+      return 2;
+    default:
+      return 0; // fallback
+  }
+};
+
+
   // 🆕 Fetch saved route if SRID is passed
   useEffect(() => {
     if (!saved_route_id) return;
@@ -87,8 +114,8 @@ const MapScreen = () => {
         setFromPlaceName(route.from_name);
         setToPlaceName(route.destination_name);
 
-        setAlarmSoundIndex(route.alarm_sound_index ?? 0);
-        setNotifyEarlierIndex(route.notif_early ?? 0);
+        setAlarmSoundIndex(convertAlarmToIndex(route.alarm_sound));
+        setNotifyEarlierIndex(convertDistanceToIndex(route.notif_early));
         setVibrationEnabled(!!route.vibration);
 
         setCenterCoordinate([from.lng, from.lat]);
@@ -245,6 +272,7 @@ const MapScreen = () => {
           setNotifyEarlierIndex={setNotifyEarlierIndex}
           vibrationEnabled={vibrationEnabled}
           setVibrationEnabled={setVibrationEnabled}
+          savedRouteId={saved_route_id as string}
         />
       </View>
     </>

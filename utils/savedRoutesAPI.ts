@@ -66,5 +66,22 @@ export async function getRouteById(saved_route_id: string): Promise<SavedRoute> 
   return res.json();
 }
 
+export async function updateRoute(
+  saved_route_id: string,
+  updatedData: Partial<SavedRoute>
+): Promise<any> {
+  const res = await fetch(`${BASE_URL}/api/saved-routes/${saved_route_id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updatedData),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to update route');
+  }
+
+  return res.json();
+}
 
 

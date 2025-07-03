@@ -1,7 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { WINDOW_HEIGHT } from '@/utils/index';
-import { saveRoute } from '@/utils/savedRoutesAPI';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updateRoute } from '@/utils/savedRoutesAPI'; // 👈 import update
 import { router } from 'expo-router';
 import React, { useRef } from 'react';
 import {
@@ -14,7 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import uuid from 'react-native-uuid';
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.55;
 const MIN_HEIGHT = WINDOW_HEIGHT * 0.55;
@@ -24,10 +22,11 @@ interface AlarmUpdateSheetProps {
   alarmSoundIndex: number;
   vibrationEnabled: boolean;
   notifyEarlierIndex: number;
-  fromPlaceName: string;
-  toPlaceName: string;
+  savedRouteId: string;
   fromCoords: [number, number] | null;
   toCoords: [number, number] | null;
+  fromPlaceName: string;
+  toPlaceName: string;
   checkpoints: {
     id: string;
     name: string;
@@ -40,15 +39,15 @@ const AlarmUpdateSheet: React.FC<AlarmUpdateSheetProps> = ({
   alarmSoundIndex,
   vibrationEnabled,
   notifyEarlierIndex,
-  fromPlaceName,
-  toPlaceName,
+  savedRouteId,
   fromCoords,
   toCoords,
+  fromPlaceName,
+  toPlaceName,
   checkpoints,
 }) => {
   const animatedValue = useRef(new Animated.Value(POSITIONS[1])).current;
   const currentPosition = useRef(1);
-  const savedRouteId = useRef(uuid.v4());
 
   const panResponder = useRef(
     PanResponder.create({
@@ -84,46 +83,48 @@ const AlarmUpdateSheet: React.FC<AlarmUpdateSheetProps> = ({
   };
 
   const alarmSounds = ['alarm1', 'alarm2', 'alarm3'];
-  const notifyOptions = [300, 500, 700]; // meters
+  const notifyOptions = [300, 500, 700];
 
   const saveTripData = async (): Promise<boolean> => {
     try {
-      if (!fromCoords || !toCoords) {
-        console.warn('⚠️ Missing coordinates. Not saving trip.');
+      if (!savedRouteId) {
+        console.warn('⚠️ No savedRouteId provided.');
         return false;
       }
 
-      const userId = await AsyncStorage.getItem('user_id');
-      if (!userId) throw new Error('User ID not found in storage');
+      if (!fromCoords || !toCoords) {
+        console.warn('⚠️ Missing coords!');
+        return false;
+      }
 
-      const route = {
-        user_id: userId,
-        saved_route_id: savedRouteId.current as string,
-        date_modified: new Date().toISOString(),
-        from: {
-          lat: fromCoords[1],
-          lng: fromCoords[0],
-        },
-        from_name: fromPlaceName,
-        destination: {
-          lat: toCoords[1],
-          lng: toCoords[0],
-        },
-        destination_name: toPlaceName,
-        checkpoints: checkpoints.map((cp) => ({
-          lat: cp.coords?.[1] || 0,
-          lng: cp.coords?.[0] || 0,
-        })),
+      const formattedCheckpoints = checkpoints
+        .filter((cp) => cp.coords) // skip nulls
+        .map((cp) => ({
+          lng: cp.coords![0],
+          lat: cp.coords![1],
+        }));
+
+      await updateRoute(savedRouteId, {
         alarm_sound: alarmSounds[alarmSoundIndex] ?? 'alarm1',
         vibration: vibrationEnabled,
         notif_early: notifyOptions[notifyEarlierIndex] ?? 300,
-      };
+        from: {
+          lng: fromCoords[0],
+          lat: fromCoords[1],
+        },
+        destination: {
+          lng: toCoords[0],
+          lat: toCoords[1],
+        },
+        from_name: fromPlaceName,
+        destination_name: toPlaceName,
+        checkpoints: formattedCheckpoints,
+      });
 
-      await saveRoute(route);
-      console.log('✅ Trip data saved');
+      console.log('✅ Route & alarm updated for:', savedRouteId);
       return true;
     } catch (err) {
-      console.error('❌ Error saving trip data:', err);
+      console.error('❌ Error updating full route data:', err);
       return false;
     }
   };
@@ -134,7 +135,7 @@ const AlarmUpdateSheet: React.FC<AlarmUpdateSheetProps> = ({
       router.replace({
         pathname: '/gps-window/main-gps',
         params: {
-          savedRouteId: savedRouteId.current as string,
+          savedRouteId: savedRouteId,
         },
       });
     }
@@ -188,7 +189,6 @@ const AlarmUpdateSheet: React.FC<AlarmUpdateSheetProps> = ({
 };
 
 export default AlarmUpdateSheet;
-
 
 const styles = StyleSheet.create({
   sheetContent: {
@@ -246,11 +246,5 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  dragHandle: {
-    width: 100,
-    height: 6,
-    backgroundColor: '#d3d3d3',
-    borderRadius: 10,
   },
 });

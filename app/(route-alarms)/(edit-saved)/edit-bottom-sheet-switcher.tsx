@@ -38,6 +38,7 @@ interface Props {
   ) => void;
   activeCheckpointId: string | null;
   setActiveCheckpointId: (id: string | null) => void;
+  savedRouteId: string;
 }
 
 
@@ -68,6 +69,7 @@ const BottomSheetSwitcher: React.FC<Props> = ({
   setCheckpoints,
   activeCheckpointId,
   setActiveCheckpointId,
+  savedRouteId,
 }) => {
 
   console.log('📦 BottomSheetSwitcher props:', {
@@ -134,6 +136,7 @@ const BottomSheetSwitcher: React.FC<Props> = ({
           fromCoords={fromCoords}
           toCoords={toCoords}
           checkpoints={checkpoints}
+          savedRouteId={savedRouteId}
         />
         
       );
