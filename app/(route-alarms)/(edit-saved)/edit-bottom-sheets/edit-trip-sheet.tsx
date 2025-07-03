@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Audio } from 'expo-av'; // 🔊 imported for alarm preview
 
 const MAX_HEIGHT = WINDOW_HEIGHT * 0.70;
 const MID_HEIGHT = WINDOW_HEIGHT * 0.44;
@@ -38,6 +39,12 @@ interface Props {
   notifyEarlierIndex: number;
   setNotifyEarlierIndex: (index: number) => void;
 }
+
+const alarmFiles = [
+  require('@/assets/sounds/alarm1.mp3'),
+  require('@/assets/sounds/alarm2.mp3'),
+  require('@/assets/sounds/alarm3.mp3'),
+];
 
 const alarmSounds = ['Alarm 1', 'Alarm 2', 'Alarm 3'];
 const notifyDistances = [300, 500, 700];
@@ -109,6 +116,20 @@ export const EditTripSheet: React.FC<Props> = ({
       },
     })
   ).current;
+
+  const handlePlayAlarmPreview = async () => {
+    try {
+      const sound = new Audio.Sound();
+      await sound.loadAsync(alarmFiles[alarmSoundIndex]);
+      await sound.playAsync();
+
+      setTimeout(() => {
+        sound.unloadAsync();
+      }, 3000);
+    } catch (e) {
+      console.warn('Failed to play alarm preview:', e);
+    }
+  };
 
   const bottomSheetStyle = {
     position: 'absolute',
@@ -225,6 +246,9 @@ export const EditTripSheet: React.FC<Props> = ({
             <View style={[styles.settingRow, { marginVertical: 8 }]}>
               <ThemedText type="defaultSemiBold">Alarm sound</ThemedText>
               <View style={styles.pickerRow}>
+                <TouchableOpacity onPress={handlePlayAlarmPreview}>
+                  <ThemedText type="default">🔊</ThemedText>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => setAlarmSoundIndex(cycleLeft(alarmSoundIndex, alarmSounds))}>
                   <ThemedText type="default">{'<'}</ThemedText>
                 </TouchableOpacity>
@@ -353,8 +377,7 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   pickerRow: {
-    width: 100,
-    marginRight: 10,
+    gap: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
