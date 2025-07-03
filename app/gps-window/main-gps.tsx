@@ -46,6 +46,24 @@ const PinIcon = ({ type, index }: { type: 'from' | 'to' | 'checkpoint'; index?: 
   );
 };
 
+function haversineDistance(coord1: [number, number], coord2: [number, number]) {
+  const R = 6371e3; // meters
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const [lon1, lat1] = coord1;
+  const [lon2, lat2] = coord2;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
 export default function MainGPS() {
   const { id: savedRouteId } = useLocalSearchParams();
   const [centerCoordinate, setCenterCoordinate] = useState<[number, number]>([120.9842, 14.5995]);
@@ -57,7 +75,8 @@ export default function MainGPS() {
   const [toCoords, setToCoords] = useState<[number, number] | null>(null);
   const [fromName, setFromName] = useState('');
   const [destinationName, setDestinationName] = useState('');
-  const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [visibleCheckpoints, setVisibleCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
+  const originalCheckpointsRef = useRef<{ lat: number; lng: number }[]>([]);
   const [routeLine, setRouteLine] = useState<any>(null);
 
   const [timeLeft, setTimeLeft] = useState('');
@@ -100,7 +119,13 @@ export default function MainGPS() {
 
       const route = await getRouteById(savedRouteId as string);
       const cps = route.checkpoints || [];
-      setCheckpoints(cps);
+      originalCheckpointsRef.current = cps;
+      const filtered = cps.filter(cp => {
+        const dist = haversineDistance([cp.lng, cp.lat], currentCoords);
+        return dist > 20; // Start by skipping checkpoints already within 20m
+      });
+      setVisibleCheckpoints(filtered);
+
       setFromName(route.from_name || '');
       setDestinationName(route.destination_name || '');
 
@@ -115,7 +140,7 @@ export default function MainGPS() {
         const toC: [number, number] = [to.lng, to.lat];
         setToCoords(toC);
 
-        const waypoints = cps.map((cp) => [cp.lng, cp.lat]);
+        const waypoints = filtered.map((cp) => [cp.lng, cp.lat]);
         const body = { from: currentCoords, to: toC, waypoints };
 
         try {
@@ -130,10 +155,7 @@ export default function MainGPS() {
 
           if (initialDistanceRef.current === null) {
             initialDistanceRef.current = data.distance;
-            setInitialDistance(data.distance); // optional, if you still want to show it
           }
-
-          console.log('📏 Initial Distance Set:', data.distance);
 
           updateStatus(data.duration, data.distance);
 
@@ -148,16 +170,23 @@ export default function MainGPS() {
               const userCoords: [number, number] = [loc.coords.longitude, loc.coords.latitude];
               setCenterCoordinate(userCoords);
 
+              const newVisible = visibleCheckpoints.filter(cp => {
+                const d = haversineDistance([cp.lng, cp.lat], userCoords);
+                return d > 10;
+              });
+              if (newVisible.length !== visibleCheckpoints.length) {
+                setVisibleCheckpoints(newVisible);
+              }
+
+              const newWaypoints = newVisible.map(cp => [cp.lng, cp.lat]);
               const res = await fetch(`${BASE_URL}/api/directions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ from: userCoords, to: toC, waypoints }),
+                body: JSON.stringify({ from: userCoords, to: toC, waypoints: newWaypoints }),
               });
 
               const updateData = await res.json();
-
               updateStatus(updateData.duration, updateData.distance);
-              console.log('📍 Updated Distance:', updateData.distance);
 
               if (
                 initialDistanceRef.current !== null &&
@@ -167,7 +196,6 @@ export default function MainGPS() {
                 const distanceInverted = initialDistanceRef.current - updateData.distance;
                 const rawProgress = distanceInverted / initialDistanceRef.current;
                 const clamped = Math.min(Math.max(rawProgress, 0), 1);
-                console.log('📏 Fixed Progress:', clamped);
                 setProgress(clamped);
               }
             }
@@ -248,7 +276,7 @@ export default function MainGPS() {
             </PointAnnotation>
           )}
 
-          {checkpoints.map((cp, idx) => (
+          {visibleCheckpoints.map((cp, idx) => (
             <PointAnnotation
               key={`checkpoint-${idx}`}
               id={`checkpoint-${idx}`}
