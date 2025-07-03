@@ -23,7 +23,7 @@ type Checkpoint = {
 };
 
 interface Props {
-  setMode: (mode: 'create' | 'checkpoints' | 'alarm') => void;
+  setMode: (mode: 'edit' | 'checkpoints' | 'alarm') => void;
   checkpoints: Checkpoint[];
   setCheckpoints: (checkpoints: Checkpoint[]) => void;
   activeCheckpointId: string | null;
@@ -239,22 +239,19 @@ const EditCheckpointsSheet: React.FC<Props> = ({
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.cancelBtn} onPress={() => {
           setActiveCheckpointId(null);
-          setMode('create');
+          setMode('edit');
         }}>
           <ThemedText type="button" style={{ color: '#104E3B' }}>Back</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[
-            styles.useAlarmBtn,
-            { opacity: !canAddCheckpoint ? 0.5 : 1 },
+            styles.useAlarmBtn
           ]}
           onPress={() => {
-            if (!canAddCheckpoint) return; // 🔒 block if invalid
 
             if (!isSheetUp) {
               setShowModal(true);
-              setActiveCheckpointId(null);
             } else {
               currentPosition.current = 1;
               Animated.spring(animatedValue, {
@@ -264,7 +261,6 @@ const EditCheckpointsSheet: React.FC<Props> = ({
               setIsSheetUp(true);
             }
           }}
-          disabled={!canAddCheckpoint}
         >
           <ThemedText type="button" style={{ color: 'white' }}>
             {isSheetUp ? 'Next' : 'Update Alarm'}
@@ -288,15 +284,12 @@ const EditCheckpointsSheet: React.FC<Props> = ({
 
               <TouchableOpacity
                 onPress={() => {
-                  if (!canAddCheckpoint) return;
                   setShowModal(false);
                   setMode('alarm');
                 }}
                 style={[
-                  styles.modalConfirm,
-                  { backgroundColor: canAddCheckpoint ? '#104E3B' : '#ccc' },
+                  styles.modalConfirm
                 ]}
-                disabled={!canAddCheckpoint}
               >
                 <ThemedText type="button" style={{ color: 'white' }}>Confirm</ThemedText>
               </TouchableOpacity>

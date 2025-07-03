@@ -371,6 +371,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     position: 'relative',
+    backgroundColor: '#FAF9F7',
   },
   instructionRow: {
   flexDirection: 'row',
