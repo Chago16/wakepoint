@@ -1,4 +1,4 @@
-import { ThemedText } from '@/components/ThemedText'; // Adjust path if needed
+import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -7,11 +7,19 @@ export function ETAStatusBar({
   timeLeft = '40 mins',
   distance = '30 Km',
   eta = '00:00 AM',
+  fromName = 'Origin',
+  destinationName = 'Destination',
+  progress = 0.45,
 }: {
   timeLeft?: string;
   distance?: string;
   eta?: string;
+  fromName?: string;
+  destinationName?: string;
+  progress?: number; // value between 0 and 1
 }) {
+  const clampedProgress = Math.min(Math.max(progress, 0), 1); // ensure 0-1 range
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>
@@ -40,7 +48,7 @@ export function ETAStatusBar({
 
       <View style={styles.progressBarWrapper}>
         <View style={styles.progressBarBackground}>
-          <View style={[styles.progressBarFill, { width: '45%' }]} />
+          <View style={[styles.progressBarFill, { width: `${clampedProgress * 100}%` }]} />
         </View>
       </View>
 
@@ -50,7 +58,7 @@ export function ETAStatusBar({
             type="default"
             numberOfLines={2}
             style={styles.endpointText}>
-            Origin
+            {fromName}
           </ThemedText>
         </View>
         <View style={styles.endpointRight}>
@@ -58,7 +66,7 @@ export function ETAStatusBar({
             type="default"
             numberOfLines={2}
             style={[styles.endpointText, { textAlign: 'right' }]}>
-            Destination
+            {destinationName}
           </ThemedText>
         </View>
       </View>

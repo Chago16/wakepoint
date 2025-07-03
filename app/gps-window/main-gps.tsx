@@ -54,8 +54,18 @@ export default function MainGPS() {
 
   const [fromCoords, setFromCoords] = useState<[number, number] | null>(null);
   const [toCoords, setToCoords] = useState<[number, number] | null>(null);
+  const [fromName, setFromName] = useState('');
+  const [destinationName, setDestinationName] = useState('');
   const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
   const [routeLine, setRouteLine] = useState<any>(null);
+
+  const [timeLeft, setTimeLeft] = useState('');
+  const [distanceLeft, setDistanceLeft] = useState('');
+  const [etaTime, setEtaTime] = useState('');
+  const [progress, setProgress] = useState(0);
+
+  const [initialDistance, setInitialDistance] = useState<number | null>(null);
+  const locationWatcher = useRef<any>(null);
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -76,48 +86,94 @@ export default function MainGPS() {
   useEffect(() => {
     (async () => {
       const granted = await requestLocationPermissions();
-      if (granted) {
-        setLocationGranted(true);
-        const location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-        const currentCoords: [number, number] = [longitude, latitude];
-        setCenterCoordinate(currentCoords);
+      if (!granted) return;
 
-        if (!savedRouteId) return;
+      setLocationGranted(true);
+      const location = await Location.getCurrentPositionAsync({});
+      const currentCoords: [number, number] = [location.coords.longitude, location.coords.latitude];
+      setCenterCoordinate(currentCoords);
 
-        const route = await getRouteById(savedRouteId as string);
-        const cps = route.checkpoints || [];
-        setCheckpoints(cps);
+      if (!savedRouteId) return;
 
-        const to = route.destination;
-        if (to?.lat && to?.lng) {
-          const toC: [number, number] = [to.lng, to.lat];
-          setToCoords(toC);
+      const route = await getRouteById(savedRouteId as string);
+      const cps = route.checkpoints || [];
+      setCheckpoints(cps);
+      setFromName(route.from_name || '');
+      setDestinationName(route.destination_name || '');
 
-          // Now draw the route from CURRENT location to `to`, with waypoints
-          try {
-            const waypoints = cps.map((cp) => [cp.lng, cp.lat]);
-            const body = {
-              from: currentCoords,
-              to: toC,
-              waypoints,
-            };
+      const to = route.destination;
+      const from = route.from;
 
-            const response = await fetch(`${BASE_URL}/api/directions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-            });
+      if (from?.lat && from?.lng) {
+        setFromCoords([from.lng, from.lat]);
+      }
 
-            const data = await response.json();
-            setRouteLine(data.geometry);
-          } catch (err) {
-            console.error('❌ Failed to draw route:', err);
-          }
+      if (to?.lat && to?.lng) {
+        const toC: [number, number] = [to.lng, to.lat];
+        setToCoords(toC);
+
+        const waypoints = cps.map((cp) => [cp.lng, cp.lat]);
+        const body = { from: currentCoords, to: toC, waypoints };
+
+        try {
+          const response = await fetch(`${BASE_URL}/api/directions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+
+          const data = await response.json();
+          setRouteLine(data.geometry);
+          setInitialDistance(data.distance);
+
+          updateStatus(data.duration, data.distance);
+
+          locationWatcher.current = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.Highest,
+              timeInterval: 10000,
+              distanceInterval: 10,
+            },
+            async (loc) => {
+              const userCoords: [number, number] = [loc.coords.longitude, loc.coords.latitude];
+              setCenterCoordinate(userCoords);
+
+              const res = await fetch(`${BASE_URL}/api/directions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from: userCoords, to: toC, waypoints }),
+              });
+
+              const updateData = await res.json();
+              updateStatus(updateData.duration, updateData.distance);
+
+              if (initialDistance) {
+                const raw = 1 - updateData.distance / initialDistance;
+                setProgress(Math.min(Math.max(raw, 0), 1));
+              }
+            }
+          );
+        } catch (err) {
+          console.error('❌ Failed to draw route:', err);
         }
       }
     })();
+
+    return () => {
+      locationWatcher.current?.remove?.();
+    };
   }, [savedRouteId]);
+
+  const updateStatus = (durationSec: number, distanceMeters: number) => {
+    const mins = Math.round(durationSec / 60);
+    const km = (distanceMeters / 1000).toFixed(1);
+    const eta = new Date(Date.now() + durationSec * 1000);
+    const formattedETA = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setTimeLeft(`${mins} min${mins !== 1 ? 's' : ''}`);
+    setDistanceLeft(`${km} km`);
+    setEtaTime(formattedETA);
+  };
 
   return (
     <>
@@ -195,7 +251,15 @@ export default function MainGPS() {
           )}
         </Mapbox.MapView>
 
-        <ETAStatusBar />
+        <ETAStatusBar
+          fromName={fromName}
+          destinationName={destinationName}
+          timeLeft={timeLeft}
+          distance={distanceLeft}
+          eta={etaTime}
+          progress={progress}
+        />
+
         <TripAlarmModal visible={showAlarm} onSwipeComplete={() => setShowAlarm(false)} />
       </View>
     </>
