@@ -193,6 +193,7 @@ const MapScreen = () => {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
+        MapboxGL.setConnected(true);
         <Mapbox.MapView
           style={styles.map}
           styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"

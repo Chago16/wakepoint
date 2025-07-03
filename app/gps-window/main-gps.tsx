@@ -65,7 +65,7 @@ export default function MainGPS() {
   const [etaTime, setEtaTime] = useState('');
   const [progress, setProgress] = useState(0);
 
-  const [initialDistance, setInitialDistance] = useState<number | null>(null);
+  const initialDistanceRef = useRef<number | null>(null);
   const locationWatcher = useRef<any>(null);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -127,7 +127,13 @@ export default function MainGPS() {
 
           const data = await response.json();
           setRouteLine(data.geometry);
-          setInitialDistance(data.distance);
+
+          if (initialDistanceRef.current === null) {
+            initialDistanceRef.current = data.distance;
+            setInitialDistance(data.distance); // optional, if you still want to show it
+          }
+
+          console.log('📏 Initial Distance Set:', data.distance);
 
           updateStatus(data.duration, data.distance);
 
@@ -149,11 +155,20 @@ export default function MainGPS() {
               });
 
               const updateData = await res.json();
-              updateStatus(updateData.duration, updateData.distance);
 
-              if (initialDistance) {
-                const raw = 1 - updateData.distance / initialDistance;
-                setProgress(Math.min(Math.max(raw, 0), 1));
+              updateStatus(updateData.duration, updateData.distance);
+              console.log('📍 Updated Distance:', updateData.distance);
+
+              if (
+                initialDistanceRef.current !== null &&
+                initialDistanceRef.current > 0 &&
+                updateData?.distance !== undefined
+              ) {
+                const distanceInverted = initialDistanceRef.current - updateData.distance;
+                const rawProgress = distanceInverted / initialDistanceRef.current;
+                const clamped = Math.min(Math.max(rawProgress, 0), 1);
+                console.log('📏 Fixed Progress:', clamped);
+                setProgress(clamped);
               }
             }
           );
@@ -200,6 +215,7 @@ export default function MainGPS() {
         </TouchableOpacity>
 
         <View style={styles.statusBarOverlay} />
+        MapboxGL.setConnected(true);
         <Mapbox.MapView
           style={styles.map}
           styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"
