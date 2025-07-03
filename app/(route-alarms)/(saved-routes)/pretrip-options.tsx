@@ -349,8 +349,18 @@ const MapScreen = () => {
                 <TouchableOpacity onPress={() => router.back()} style={styles.modalCancel}>
                   <ThemedText type="button" style={{ color: '#104E3B' }}>Cancel</ThemedText>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push('/gps-window/main-gps')} style={styles.modalConfirm}>
-                  <ThemedText type="button" style={{ color: 'white' }}>Confirm</ThemedText>
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: '/gps-window/main-gps',
+                      params: { id: saved_route_id },
+                    })
+                  }
+                  style={styles.modalConfirm}
+                >
+                  <ThemedText type="button" style={{ color: 'white' }}>
+                    Confirm
+                  </ThemedText>
                 </TouchableOpacity>
               </View>
             </View>

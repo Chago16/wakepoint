@@ -1,23 +1,28 @@
 import { ThemedText } from '@/components/ThemedText';
-import { ETAStatusBar } from '@/components/ui/ETAStatusBar'; // adjust path as needed
+import { ETAStatusBar } from '@/components/ui/ETAStatusBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
 import Mapbox, { Camera } from '@rnmapbox/maps';
 import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
 export default function MapScreen() {
+  const { id: savedRouteId } = useLocalSearchParams();
   const [centerCoordinate, setCenterCoordinate] = useState<[number, number]>([120.9842, 14.5995]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [showAlarm, setShowAlarm] = useState(false);
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    console.log('📦 Received savedRouteId:', savedRouteId);
+  }, [savedRouteId]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
@@ -66,8 +71,7 @@ export default function MapScreen() {
         <TouchableOpacity
           style={styles.cancelTripButton}
           onPress={() => {
-            // Optionally: show confirmation modal before routing
-            router.push('/dashboard'); // or set a trip state to "cancelled"
+            router.push('/dashboard');
           }}
         >
           <ThemedText type="button" style={styles.cancelTripText}>End Trip Early</ThemedText>
@@ -116,15 +120,13 @@ const styles = StyleSheet.create({
   },
   headerTopRow: {
     position: 'absolute',
-    top: 40, // adjust based on your safe area / design
+    top: 40,
     left: 25,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingRight:10,
-    
+    paddingRight: 10,
     borderRadius: 999,
     backgroundColor: '#ffffff',
-    
     zIndex: 99,
   },
   backCircle: {
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
     top: 40,
     right: 25,
     alignSelf: 'flex-end',
-    backgroundColor: '#D9534F', // red tone
+    backgroundColor: '#D9534F',
     paddingHorizontal: 10,
     paddingVertical: 2,
     borderRadius: 30,
