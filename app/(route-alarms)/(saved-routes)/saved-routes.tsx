@@ -17,7 +17,6 @@ import {
   View,
 } from 'react-native';
 
-
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HEADER_HEIGHT = SCREEN_HEIGHT * 0.18;
 
@@ -31,32 +30,34 @@ export default function ChooseScreen() {
   const bottomSpacerAnim = useRef(new Animated.Value(0)).current;
   const heightAnims = useRef<any[]>([]).current;
 
+  const loadAndEnhanceRoutes = async (userId: string) => {
+    const rawRoutes = await getRoutesByUserId(userId);
+
+    const routesWithCheckpointNames = await Promise.all(
+      rawRoutes.map(async (route: any) => {
+        const checkpointNames = await Promise.all(
+          route.checkpoints.map(async (cp: any) => {
+            const reverse = await getAddressFromCoordinates(cp.lat, cp.lng);
+            return reverse?.address || 'Unnamed';
+          })
+        );
+
+        return {
+          ...route,
+          checkpointNames,
+        };
+      })
+    );
+
+    setSavedRoutes(routesWithCheckpointNames);
+    heightAnims.splice(0, heightAnims.length, ...routesWithCheckpointNames.map(() => new Animated.Value(1)));
+  };
+
   useEffect(() => {
     const fetchRoutes = async () => {
       const userId = await AsyncStorage.getItem('user_id');
       if (!userId) return;
-
-      const rawRoutes = await getRoutesByUserId(userId);
-
-      const routesWithCheckpointNames = await Promise.all(
-        rawRoutes.map(async (route: any) => {
-          const checkpointNames = await Promise.all(
-            route.checkpoints.map(async (cp: any) => {
-              console.log('🧭 Checkpoint:', cp);
-              const reverse = await getAddressFromCoordinates(cp.lat, cp.lng);
-              return reverse?.address || 'Unnamed';
-            })
-          );
-
-          return {
-            ...route,
-            checkpointNames,
-          };
-        })
-      );
-
-      setSavedRoutes(routesWithCheckpointNames);
-      heightAnims.splice(0, heightAnims.length, ...routesWithCheckpointNames.map(() => new Animated.Value(1)));
+      await loadAndEnhanceRoutes(userId);
     };
 
     fetchRoutes();
@@ -108,15 +109,14 @@ export default function ChooseScreen() {
   }, [isLongPressed]);
 
   const handleUseAsAlarm = () => {
-  if (selectedIndex !== null) {
-    const route = savedRoutes[selectedIndex];
-    router.push({
-      pathname: '/pretrip-options',
-      params: { id: route.saved_route_id },
-    });
-  }
-};
-
+    if (selectedIndex !== null) {
+      const route = savedRoutes[selectedIndex];
+      router.push({
+        pathname: '/pretrip-options',
+        params: { id: route.saved_route_id },
+      });
+    }
+  };
 
   const handleEdit = () => {
     if (selectedIndex !== null) {
@@ -132,22 +132,22 @@ export default function ChooseScreen() {
   };
 
   const handleDelete = async () => {
-  if (selectedIndex !== null) {
-    const route = savedRoutes[selectedIndex];
-    try {
-      await deleteRoute(route.saved_route_id);
-      // Refresh list after delete
-      const userId = await AsyncStorage.getItem('user_id');
-      if (!userId) return;
-      const updatedRoutes = await getRoutesByUserId(userId);
-      setSavedRoutes(updatedRoutes);
-      setIsLongPressed(false);
-      setSelectedIndex(null);
-    } catch (err) {
-      console.error('Delete failed:', err);
+    if (selectedIndex !== null) {
+      const route = savedRoutes[selectedIndex];
+      try {
+        await deleteRoute(route.saved_route_id);
+
+        const userId = await AsyncStorage.getItem('user_id');
+        if (!userId) return;
+
+        await loadAndEnhanceRoutes(userId);
+        setIsLongPressed(false);
+        setSelectedIndex(null);
+      } catch (err) {
+        console.error('Delete failed:', err);
+      }
     }
-  }
-};
+  };
 
   return (
     <>
@@ -163,7 +163,7 @@ export default function ChooseScreen() {
                 <ThemedText type="defaultSemiBold" style={styles.backText}>Back</ThemedText>
               </View>
               <View style={styles.headerTitleContainer}>
-                <ThemedText type="titleLarge" style={{ fontSize: 28, color: 'white', lineHeight: 35}}>
+                <ThemedText type="titleLarge" style={{ fontSize: 28, color: 'white', lineHeight: 35 }}>
                   Saved Routes
                 </ThemedText>
                 <ThemedText type="subtitle1" style={{ fontSize: 15, color: 'white', lineHeight: 16 }}>
@@ -174,7 +174,7 @@ export default function ChooseScreen() {
           ),
         }}
       />
-      
+
       <View style={styles.instructionRow}>
         <View style={styles.exclamationCircle}>
           <ThemedText type="button" style={styles.exclamationMark}>!</ThemedText>
@@ -183,7 +183,6 @@ export default function ChooseScreen() {
       </View>
 
       <View style={styles.container}>
-
         {isLongPressed && (
           <TouchableWithoutFeedback
             onPress={() => {
@@ -195,7 +194,7 @@ export default function ChooseScreen() {
           </TouchableWithoutFeedback>
         )}
 
-        <View style={{flex: 1 }}>
+        <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ paddingTop: 30, paddingBottom: 80 }}>
             {savedRoutes.map((route, index) => (
               <Animated.View
@@ -257,46 +256,45 @@ export default function ChooseScreen() {
           </ScrollView>
 
           {isLongPressed && selectedIndex !== null && (
-  <Animated.View style={[styles.absoluteCard, { transform: [{ scale: cardAnim }] }]}>
-    <View style={[styles.tripCard, styles.tripCardSelected]}>
-      <View style={{position: 'relative'}}>
-        <View style={styles.timelineLine} />
+            <Animated.View style={[styles.absoluteCard, { transform: [{ scale: cardAnim }] }]}>
+              <View style={[styles.tripCard, styles.tripCardSelected]}>
+                <View style={{ position: 'relative' }}>
+                  <View style={styles.timelineLine} />
 
-        {/* FROM */}
-        <View style={styles.checkpoint}>
-          <View style={styles.checkIconCircle} />
-          <View style={styles.checkpointTextBox}>
-            <ThemedText type="defaultSemiBold">
-              {savedRoutes[selectedIndex].from_name || 'Starting Point'}
-            </ThemedText>
-          </View>
-        </View>
+                  {/* FROM */}
+                  <View style={styles.checkpoint}>
+                    <View style={styles.checkIconCircle} />
+                    <View style={styles.checkpointTextBox}>
+                      <ThemedText type="defaultSemiBold">
+                        {savedRoutes[selectedIndex].from_name || 'Starting Point'}
+                      </ThemedText>
+                    </View>
+                  </View>
 
-        {/* CHECKPOINTS */}
-        {savedRoutes[selectedIndex].checkpointNames?.map((cpName: string, i: number) => (
-          <View key={i} style={styles.checkpoints}>
-            <View style={styles.line} />
-            <View style={styles.checkpointDot} />
-            <View style={styles.checkpointDetail}>
-              <ThemedText type="default">{cpName}</ThemedText>
-            </View>
-          </View>
-        ))}
+                  {/* CHECKPOINTS */}
+                  {savedRoutes[selectedIndex].checkpointNames?.map((cpName: string, i: number) => (
+                    <View key={i} style={styles.checkpoints}>
+                      <View style={styles.line} />
+                      <View style={styles.checkpointDot} />
+                      <View style={styles.checkpointDetail}>
+                        <ThemedText type="default">{cpName}</ThemedText>
+                      </View>
+                    </View>
+                  ))}
 
-              {/* DESTINATION */}
-              <View style={styles.checkpoint}>
-                <View style={styles.finalPin} />
-                <View style={styles.checkpointTextBox}>
-                  <ThemedText type="defaultSemiBold">
-                    {savedRoutes[selectedIndex].destination_name || 'Destination'}
-                  </ThemedText>
+                  {/* DESTINATION */}
+                  <View style={styles.checkpoint}>
+                    <View style={styles.finalPin} />
+                    <View style={styles.checkpointTextBox}>
+                      <ThemedText type="defaultSemiBold">
+                        {savedRoutes[selectedIndex].destination_name || 'Destination'}
+                      </ThemedText>
+                    </View>
+                  </View>
                 </View>
               </View>
-            </View>
-          </View>
-        </Animated.View>
-      )}
-
+            </Animated.View>
+          )}
 
           {/* Bottom bar */}
           <View style={styles.bottomBar}>
@@ -329,6 +327,7 @@ export default function ChooseScreen() {
     </>
   );
 }
+
 
 
 

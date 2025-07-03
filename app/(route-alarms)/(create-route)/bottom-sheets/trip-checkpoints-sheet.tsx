@@ -246,14 +246,11 @@ const TripCheckpointsSheet: React.FC<Props> = ({
         <TouchableOpacity
           style={[
             styles.useAlarmBtn,
-            { opacity: !canAddCheckpoint ? 0.5 : 1 },
           ]}
-          onPress={() => {
-            if (!canAddCheckpoint) return; // 🔒 block if invalid
+          onPress={() => { // 🔒 block if invalid
 
             if (!isSheetUp) {
               setShowModal(true);
-              setActiveCheckpointId(null);
             } else {
               currentPosition.current = 1;
               Animated.spring(animatedValue, {
@@ -263,7 +260,6 @@ const TripCheckpointsSheet: React.FC<Props> = ({
               setIsSheetUp(true);
             }
           }}
-          disabled={!canAddCheckpoint}
         >
           <ThemedText type="button" style={{ color: 'white' }}>
             {isSheetUp ? 'Next' : 'Save Alarm'}
@@ -287,15 +283,13 @@ const TripCheckpointsSheet: React.FC<Props> = ({
 
               <TouchableOpacity
                 onPress={() => {
-                  if (!canAddCheckpoint) return;
                   setShowModal(false);
                   setMode('alarm');
                 }}
                 style={[
                   styles.modalConfirm,
-                  { backgroundColor: canAddCheckpoint ? '#104E3B' : '#ccc' },
+                  { backgroundColor: '#104E3B'},
                 ]}
-                disabled={!canAddCheckpoint}
               >
                 <ThemedText type="button" style={{ color: 'white' }}>Confirm</ThemedText>
               </TouchableOpacity>
