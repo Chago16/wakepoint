@@ -1,16 +1,16 @@
+// MainGPS.tsx
 import { ThemedText } from '@/components/ThemedText';
 import { ETAStatusBar } from '@/components/ui/ETAStatusBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
-import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
-import { getRouteById } from '@/utils/savedRoutesAPI';
 import { BASE_URL } from '@/config';
+import { getRouteById } from '@/utils/savedRoutesAPI';
+import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
 import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -46,24 +46,6 @@ const PinIcon = ({ type, index }: { type: 'from' | 'to' | 'checkpoint'; index?: 
   );
 };
 
-function haversineDistance(coord1: [number, number], coord2: [number, number]) {
-  const R = 6371e3; // meters
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const [lon1, lat1] = coord1;
-  const [lon2, lat2] = coord2;
-
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
-}
-
 export default function MainGPS() {
   const { id: savedRouteId } = useLocalSearchParams();
   const [centerCoordinate, setCenterCoordinate] = useState<[number, number]>([120.9842, 14.5995]);
@@ -73,21 +55,16 @@ export default function MainGPS() {
 
   const [fromCoords, setFromCoords] = useState<[number, number] | null>(null);
   const [toCoords, setToCoords] = useState<[number, number] | null>(null);
+  const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [routeLineFromTo, setRouteLineFromTo] = useState<any>(null);
+  const [routeLineCurrentTo, setRouteLineCurrentTo] = useState<any>(null);
   const [fromName, setFromName] = useState('');
   const [destinationName, setDestinationName] = useState('');
-  const [visibleCheckpoints, setVisibleCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
-  const originalCheckpointsRef = useRef<{ lat: number; lng: number }[]>([]);
-  const [routeLine, setRouteLine] = useState<any>(null);
-
   const [timeLeft, setTimeLeft] = useState('');
   const [distanceLeft, setDistanceLeft] = useState('');
   const [etaTime, setEtaTime] = useState('');
   const [progress, setProgress] = useState(0);
-
   const initialDistanceRef = useRef<number | null>(null);
-  const locationWatcher = useRef<any>(null);
-
-  const [isLoading, setIsLoading] = useState(true);
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -119,97 +96,115 @@ export default function MainGPS() {
 
       const route = await getRouteById(savedRouteId as string);
       const cps = route.checkpoints || [];
-      originalCheckpointsRef.current = cps;
-      const filtered = cps.filter(cp => {
-        const dist = haversineDistance([cp.lng, cp.lat], currentCoords);
-        return dist > 20; // Start by skipping checkpoints already within 20m
-      });
-      setVisibleCheckpoints(filtered);
+      const from = route.from;
+      const to = route.destination;
 
+      setCheckpoints(cps);
       setFromName(route.from_name || '');
       setDestinationName(route.destination_name || '');
 
-      const to = route.destination;
-      const from = route.from;
-
-      if (from?.lat && from?.lng) {
-        setFromCoords([from.lng, from.lat]);
+      if (from?.lng && from?.lat) {
+        const coords: [number, number] = [from.lng, from.lat];
+        setFromCoords(coords);
       }
 
-      if (to?.lat && to?.lng) {
+      if (to?.lng && to?.lat) {
         const toC: [number, number] = [to.lng, to.lat];
         setToCoords(toC);
 
-        const waypoints = filtered.map((cp) => [cp.lng, cp.lat]);
-        const body = { from: currentCoords, to: toC, waypoints };
+        const waypoints = cps.map((cp) => [cp.lng, cp.lat]);
 
+        // ROUTE A: from saved FROM -> TO
+        if (from?.lng && from?.lat) {
+          const fromBody = { from: [from.lng, from.lat], to: toC, waypoints };
+          try {
+            const res = await fetch(`${BASE_URL}/api/directions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(fromBody),
+            });
+            const data = await res.json();
+            setRouteLineFromTo(data.geometry);
+          } catch (err) {
+            console.error('❌ Route from FROM → TO failed:', err);
+          }
+        }
+
+        // ROUTE B: from current location → TO
+        const currentBody = { from: currentCoords, to: toC, waypoints };
         try {
-          const response = await fetch(`${BASE_URL}/api/directions`, {
+          const res = await fetch(`${BASE_URL}/api/directions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
+            body: JSON.stringify(currentBody),
           });
-
-          const data = await response.json();
-          setRouteLine(data.geometry);
-
+          const data = await res.json();
+          setRouteLineCurrentTo(data.geometry);
           if (initialDistanceRef.current === null) {
             initialDistanceRef.current = data.distance;
           }
-
           updateStatus(data.duration, data.distance);
-
-          setIsLoading(false);
-          locationWatcher.current = await Location.watchPositionAsync(
-            {
-              accuracy: Location.Accuracy.Highest,
-              timeInterval: 10000,
-              distanceInterval: 10,
-            },
-            async (loc) => {
-              const userCoords: [number, number] = [loc.coords.longitude, loc.coords.latitude];
-              setCenterCoordinate(userCoords);
-
-              const newVisible = visibleCheckpoints.filter(cp => {
-                const d = haversineDistance([cp.lng, cp.lat], userCoords);
-                return d > 10;
-              });
-              if (newVisible.length !== visibleCheckpoints.length) {
-                setVisibleCheckpoints(newVisible);
-              }
-
-              const newWaypoints = newVisible.map(cp => [cp.lng, cp.lat]);
-              const res = await fetch(`${BASE_URL}/api/directions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ from: userCoords, to: toC, waypoints: newWaypoints }),
-              });
-
-              const updateData = await res.json();
-              updateStatus(updateData.duration, updateData.distance);
-
-              if (
-                initialDistanceRef.current !== null &&
-                initialDistanceRef.current > 0 &&
-                updateData?.distance !== undefined
-              ) {
-                const distanceInverted = initialDistanceRef.current - updateData.distance;
-                const rawProgress = distanceInverted / initialDistanceRef.current;
-                const clamped = Math.min(Math.max(rawProgress, 0), 1);
-                setProgress(clamped);
-              }
-            }
-          );
         } catch (err) {
-          console.error('❌ Failed to draw route:', err);
+          console.error('❌ Route from CURRENT → TO failed:', err);
         }
       }
     })();
+  }, [savedRouteId]);
+
+  useEffect(() => {
+    let subscription: Location.LocationSubscription;
+
+    const startWatching = async () => {
+      const granted = await requestLocationPermissions();
+      if (!granted || !toCoords) return;
+
+      subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000,
+          distanceInterval: 15,
+        },
+        async (location) => {
+          const newCoords: [number, number] = [
+            location.coords.longitude,
+            location.coords.latitude,
+          ];
+          setCenterCoordinate(newCoords);
+
+          const currentBody = {
+            from: newCoords,
+            to: toCoords,
+            waypoints: checkpoints.map((cp) => [cp.lng, cp.lat]),
+          };
+
+          try {
+            const res = await fetch(`${BASE_URL}/api/directions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(currentBody),
+            });
+            const data = await res.json();
+            setRouteLineCurrentTo(data.geometry);
+
+            if (initialDistanceRef.current !== null && data.distance) {
+              const distanceInverted = initialDistanceRef.current - data.distance;
+              const rawProgress = distanceInverted / initialDistanceRef.current;
+              setProgress(Math.min(Math.max(rawProgress, 0), 1));
+              updateStatus(data.duration, data.distance);
+            }
+          } catch (err) {
+            console.error('❌ Live route update failed:', err);
+          }
+        }
+      );
+    };
+
+    startWatching();
 
     return () => {
-      locationWatcher.current?.remove?.();
+      if (subscription) subscription.remove();
     };
-  }, [savedRouteId]);
+  }, [toCoords, checkpoints]);
 
   const updateStatus = (durationSec: number, distanceMeters: number) => {
     const mins = Math.round(durationSec / 60);
@@ -221,8 +216,6 @@ export default function MainGPS() {
     setDistanceLeft(`${km} km`);
     setEtaTime(formattedETA);
   };
-
-  if (isLoading) return <LoadingScreen />;
 
   return (
     <>
@@ -243,7 +236,6 @@ export default function MainGPS() {
         </TouchableOpacity>
 
         <View style={styles.statusBarOverlay} />
-        MapboxGL.setConnected(true);
         <Mapbox.MapView
           style={styles.map}
           styleURL="mapbox://styles/mapbox/navigation-guidance-night-v4"
@@ -276,7 +268,7 @@ export default function MainGPS() {
             </PointAnnotation>
           )}
 
-          {visibleCheckpoints.map((cp, idx) => (
+          {checkpoints.map((cp, idx) => (
             <PointAnnotation
               key={`checkpoint-${idx}`}
               id={`checkpoint-${idx}`}
@@ -286,14 +278,29 @@ export default function MainGPS() {
             </PointAnnotation>
           ))}
 
-          {routeLine && (
-            <ShapeSource id="routeLine" shape={{ type: 'Feature', geometry: routeLine }}>
+          {routeLineFromTo && (
+            <ShapeSource id="routeFromTo" shape={{ type: 'Feature', geometry: routeLineFromTo }}>
               <LineLayer
-                id="routeLineLayer"
+                id="routeFromToLayer"
+                style={{
+                  lineColor: '#6C7372',
+                  lineWidth: 4,
+                  lineJoin: 'round',
+                  lineCap: 'round',
+                  lineDasharray: [2, 2],
+                }}
+              />
+            </ShapeSource>
+          )}
+
+          {routeLineCurrentTo && (
+            <ShapeSource id="routeCurrentTo" shape={{ type: 'Feature', geometry: routeLineCurrentTo }}>
+              <LineLayer
+                id="routeCurrentToLayer"
                 style={{
                   lineColor: '#ADCE7D',
-                  lineWidth: 5,
                   lineJoin: 'round',
+                  lineWidth: 4,
                   lineCap: 'round',
                 }}
               />
