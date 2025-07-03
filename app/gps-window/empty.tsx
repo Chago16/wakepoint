@@ -2,9 +2,9 @@ import { ThemedText } from '@/components/ThemedText';
 import { ETAStatusBar } from '@/components/ui/ETAStatusBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
-import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
-import { getRouteById } from '@/utils/savedRoutesAPI';
 import { BASE_URL } from '@/config';
+import { getRouteById } from '@/utils/savedRoutesAPI';
+import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
 import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -55,7 +55,8 @@ export default function MainGPS() {
   const [fromCoords, setFromCoords] = useState<[number, number] | null>(null);
   const [toCoords, setToCoords] = useState<[number, number] | null>(null);
   const [checkpoints, setCheckpoints] = useState<{ lat: number; lng: number }[]>([]);
-  const [routeLine, setRouteLine] = useState<any>(null);
+  const [routeLineFromTo, setRouteLineFromTo] = useState<any>(null);
+  const [routeLineCurrentTo, setRouteLineCurrentTo] = useState<any>(null);
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -76,17 +77,13 @@ export default function MainGPS() {
   useEffect(() => {
     (async () => {
       const granted = await requestLocationPermissions();
-      if (granted) {
-        setLocationGranted(true);
-        const location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-        setCenterCoordinate([longitude, latitude]);
-      }
-    })();
-  }, []);
+      if (!granted) return;
 
-  useEffect(() => {
-    (async () => {
+      setLocationGranted(true);
+      const location = await Location.getCurrentPositionAsync({});
+      const currentCoords: [number, number] = [location.coords.longitude, location.coords.latitude];
+      setCenterCoordinate(currentCoords);
+
       if (!savedRouteId) return;
 
       const route = await getRouteById(savedRouteId as string);
@@ -99,37 +96,112 @@ export default function MainGPS() {
       if (from?.lng && from?.lat) {
         const coords: [number, number] = [from.lng, from.lat];
         setFromCoords(coords);
-        setCenterCoordinate(coords);
       }
 
       if (to?.lng && to?.lat) {
-        setToCoords([to.lng, to.lat]);
-      }
+        const toC: [number, number] = [to.lng, to.lat];
+        setToCoords(toC);
 
-      if (from && to) {
+        const waypoints = cps.map((cp) => [cp.lng, cp.lat]);
+
+        if (from?.lng && from?.lat) {
+          // Draw route from FROM -> TO
+          const fromBody = {
+            from: [from.lng, from.lat],
+            to: toC,
+            waypoints,
+          };
+
+          try {
+            const res = await fetch(`${BASE_URL}/api/directions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(fromBody),
+            });
+            const data = await res.json();
+            setRouteLineFromTo(data.geometry);
+          } catch (err) {
+            console.error('❌ Route from from → to failed:', err);
+          }
+        }
+
+        // Draw route from CURRENT LOCATION → TO
+        const currentBody = {
+          from: currentCoords,
+          to: toC,
+          waypoints,
+        };
+
         try {
-          const waypoints = cps.map(cp => [cp.lng, cp.lat]);
-          const body = { from: [from.lng, from.lat], to: [to.lng, to.lat], waypoints };
-
-          const response = await fetch(`${BASE_URL}/api/directions`, {
+          const res = await fetch(`${BASE_URL}/api/directions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
+            body: JSON.stringify(currentBody),
           });
-
-          const data = await response.json();
-          setRouteLine(data.geometry);
+          const data = await res.json();
+          setRouteLineCurrentTo(data.geometry);
         } catch (err) {
-          console.error('❌ Failed to draw route:', err);
+          console.error('❌ Route from current → to failed:', err);
         }
       }
     })();
   }, [savedRouteId]);
 
+    useEffect(() => {
+    let subscription: Location.LocationSubscription;
+
+    const startWatching = async () => {
+      const granted = await requestLocationPermissions();
+      if (!granted || !toCoords) return;
+
+      subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000,
+          distanceInterval: 15,
+        },
+        async (location) => {
+          const newCoords: [number, number] = [
+            location.coords.longitude,
+            location.coords.latitude,
+          ];
+
+          setCenterCoordinate(newCoords);
+
+          const currentBody = {
+            from: newCoords,
+            to: toCoords,
+            waypoints: checkpoints.map((cp) => [cp.lng, cp.lat]),
+          };
+
+          try {
+            const res = await fetch(`${BASE_URL}/api/directions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(currentBody),
+            });
+            const data = await res.json();
+            setRouteLineCurrentTo(data.geometry);
+          } catch (err) {
+            console.error('❌ Live route update failed:', err);
+          }
+        }
+      );
+    };
+
+    startWatching();
+
+    return () => {
+      if (subscription) subscription.remove();
+    };
+  }, [toCoords, checkpoints]);
+
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
+        {/* Header Buttons */}
         <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={() => router.push('/dashboard')} style={styles.backCircle}>
             <IconSymbol name="arrow.left.circle" size={20} color="#145E4D" />
@@ -144,6 +216,7 @@ export default function MainGPS() {
           <ThemedText type="button" style={styles.cancelTripText}>End Trip Early</ThemedText>
         </TouchableOpacity>
 
+        {/* Map */}
         <View style={styles.statusBarOverlay} />
         <Mapbox.MapView
           style={styles.map}
@@ -187,14 +260,31 @@ export default function MainGPS() {
             </PointAnnotation>
           ))}
 
-          {routeLine && (
-            <ShapeSource id="routeLine" shape={{ type: 'Feature', geometry: routeLine }}>
+          {/* Route from saved FROM -> TO */}
+          {routeLineFromTo && (
+            <ShapeSource id="routeFromTo" shape={{ type: 'Feature', geometry: routeLineFromTo }}>
               <LineLayer
-                id="routeLineLayer"
+                id="routeFromToLayer"
                 style={{
-                  lineColor: '#ADCE7D',
-                  lineWidth: 5,
+                  lineColor: '#6C7372', // gray
+                  lineWidth: 4,
                   lineJoin: 'round',
+                  lineCap: 'round',
+                  lineDasharray: [2, 2], 
+                }}
+              />
+            </ShapeSource>
+          )}
+
+          {/* Route from CURRENT LOCATION -> TO */}
+          {routeLineCurrentTo && (
+            <ShapeSource id="routeCurrentTo" shape={{ type: 'Feature', geometry: routeLineCurrentTo }}>
+              <LineLayer
+                id="routeCurrentToLayer"
+                style={{
+                  lineColor: '#ADCE7D', // green
+                  lineJoin: 'round',
+                  lineWidth: 4,
                   lineCap: 'round',
                 }}
               />
