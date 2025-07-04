@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
 import { ThemedText } from '@/components/ThemedText';
-import { ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
 import { getUserId } from '@/utils/session'; // adjust path if needed
 import { getTripHistories } from '@/utils/tripHistory'; // adjust path if needed
+import React, { useEffect, useState } from 'react';
+import { ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
 
 
 export default function HistoryScreen() {
@@ -67,19 +67,8 @@ export default function HistoryScreen() {
                   </View>
                 </View>
 
-                {route.checkpoints.map((cp, i) => (
-                  <View key={i} style={styles.checkpoints}>
-                    <View style={styles.line} />
-                    <View style={styles.checkpointDot} />
-                    <View style={styles.checkpointDetail}>
-                      <ThemedText type="default">
-                        {cp.name || `Checkpoint ${i + 1}`}
-                      </ThemedText>
-                    </View>
-                  </View>
-                ))}
-
                 <View style={styles.checkpoint}>
+                  <View style={styles.line} />
                   <View style={styles.finalPin} />
                   <View style={styles.checkpointTextBox}>
                     <ThemedText type="defaultSemiBold">
@@ -149,6 +138,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#104E3B',
     zIndex: 10,
   },
+  
+  line: {
+    position: 'absolute',
+    top: 20,
+    left: 0,
+    bottom: 0,
+    width: 10, // thinner width
+    backgroundColor: 'white',
+    zIndex: 10,
+  },
   checkpoint: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -179,9 +178,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fromNameText: {
-    flexShrink: 1,
-    flexBasis: 0,
-    marginRight: 8,
+    width: 150,
   },
   dateText: {
     fontSize: 12,
@@ -200,15 +197,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#104E3B',
     marginRight: 12,
     marginTop: 4,
-  },
-  line: {
-    position: 'absolute',
-    top: 9.8,
-    left: 9,
-    width: 11,
-    height: 2,
-    backgroundColor: '#104E3B',
-    zIndex: 10,
   },
   checkpointDetail: {
     flex: 1,

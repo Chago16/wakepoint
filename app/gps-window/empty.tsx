@@ -292,6 +292,38 @@ export default function MainGPS() {
           )}
         </Mapbox.MapView>
 
+        -----------------------------------------------------------------------------------------
+        {routeLineFromTo && (
+                    <ShapeSource id="routeFromTo" shape={{ type: 'Feature', geometry: routeLineFromTo, properties:{}  }}>
+                      <LineLayer
+                        id="routeFromToLayer"
+                        style={{
+                          lineColor: '#6C7372',
+                          lineJoin: 'round',
+                          lineWidth: 4,
+                          lineCap: 'round',
+                        }}
+                      />
+                    </ShapeSource>
+                  )}
+        
+                  {routeLineCurrentTo && (
+                    <ShapeSource id="routeCurrentTo" shape={{ type: 'Feature', geometry: routeLineCurrentTo, properties:{} }}>
+                      <LineLayer
+                        id="routeCurrentToLayer"
+                        style={{
+                          lineColor: '#ADCE7D',
+                          lineWidth: 4,
+                          lineJoin: 'round',
+                          lineCap: 'round',
+                          lineDasharray: [2, 2],
+                        }}
+                      />
+                    </ShapeSource>
+                  )}
+
+                  ----------------------------------------------------------------------------------------------------------
+
         <ETAStatusBar />
         <TripAlarmModal visible={showAlarm} onSwipeComplete={() => setShowAlarm(false)} />
       </View>

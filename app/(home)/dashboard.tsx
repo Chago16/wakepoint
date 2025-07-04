@@ -2,9 +2,9 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { getTripHistories } from '@/utils/tripHistory'; // added getTripHistories
 import { fetchUserName } from '@utils/fetchUserName';
 import { clearUserId, getUserId } from '@utils/session'; // added getUserId
-import { getTripHistories } from '@/utils/tripHistory'; // added getTripHistories
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -108,7 +108,7 @@ export default function HomeScreen() {
                 resizeMode="contain"
               />
               <ThemedText type="option" style={{ textAlign: 'center' }}>
-                Choose Saved{'\n'}Trip Alarms
+                Choose Saved Trip
               </ThemedText>
             </TouchableOpacity>
 
