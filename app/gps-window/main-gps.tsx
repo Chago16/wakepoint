@@ -104,8 +104,7 @@ export default function MainGPS() {
       setDestinationName(route.destination_name || '');
 
       if (from?.lng && from?.lat) {
-        const coords: [number, number] = [from.lng, from.lat];
-        setFromCoords(coords);
+        setFromCoords([from.lng, from.lat]);
       }
 
       if (to?.lng && to?.lat) {
@@ -114,7 +113,6 @@ export default function MainGPS() {
 
         const waypoints = cps.map((cp) => [cp.lng, cp.lat]);
 
-        // ROUTE A: from saved FROM -> TO
         if (from?.lng && from?.lat) {
           const fromBody = { from: [from.lng, from.lat], to: toC, waypoints };
           try {
@@ -130,8 +128,8 @@ export default function MainGPS() {
           }
         }
 
-        // ROUTE B: from current location → TO
-        const currentBody = { from: currentCoords, to: toC, waypoints };
+        // 🚫 No waypoints here
+        const currentBody = { from: currentCoords, to: toC };
         try {
           const res = await fetch(`${BASE_URL}/api/directions`, {
             method: 'POST',
@@ -171,10 +169,10 @@ export default function MainGPS() {
           ];
           setCenterCoordinate(newCoords);
 
+          // 🚫 No waypoints here
           const currentBody = {
             from: newCoords,
             to: toCoords,
-            waypoints: checkpoints.map((cp) => [cp.lng, cp.lat]),
           };
 
           try {
@@ -200,11 +198,10 @@ export default function MainGPS() {
     };
 
     startWatching();
-
     return () => {
       if (subscription) subscription.remove();
     };
-  }, [toCoords, checkpoints]);
+  }, [toCoords]);
 
   const updateStatus = (durationSec: number, distanceMeters: number) => {
     const mins = Math.round(durationSec / 60);

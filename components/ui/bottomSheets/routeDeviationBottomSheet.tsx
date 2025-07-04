@@ -1,6 +1,12 @@
-import React from 'react';
-import { Modal, View, StyleSheet, Image, Pressable } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
+import React from 'react';
+import {
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 type RouteDeviationBottomSheetProps = {
   visible: boolean;
@@ -26,12 +32,12 @@ export const RouteDeviationBottomSheet = ({
           </ThemedText>
 
           <ThemedText type="default" style={styles.subtitle}>
-            Possibly due to traffic or other issues.
+            You seem to be off the planned route.
           </ThemedText>
 
           <Pressable onPress={onConfirm} style={styles.okButton}>
             <ThemedText type="button" style={styles.okText}>
-              Okay
+              Got it
             </ThemedText>
           </Pressable>
         </View>
