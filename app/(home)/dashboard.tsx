@@ -3,7 +3,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { fetchUserName } from '@utils/fetchUserName';
-import { clearUserId } from '@utils/session';
+import { clearUserId, getUserId } from '@utils/session'; // added getUserId
+import { getTripHistories } from '@/utils/tripHistory'; // added getTripHistories
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -16,6 +17,7 @@ import {
 
 export default function HomeScreen() {
   const [userName, setUserName] = useState('');
+  const [recentTrips, setRecentTrips] = useState([]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -28,6 +30,24 @@ export default function HomeScreen() {
       }
     };
     getUser();
+
+    const fetchRecentTrips = async () => {
+      const userId = await getUserId();
+      if (!userId) return;
+
+      try {
+        const trips = await getTripHistories(userId);
+        if (trips && trips.length > 0) {
+          // Sort descending by date_start
+          trips.sort((a, b) => new Date(b.date_start) - new Date(a.date_start));
+          // Take top 3
+          setRecentTrips(trips.slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Failed to load recent trips:', error);
+      }
+    };
+    fetchRecentTrips();
   }, []);
 
   const handleLogout = async () => {
@@ -79,7 +99,7 @@ export default function HomeScreen() {
           <ThemedText type="titleSmall">Quick Options</ThemedText>
           <ThemedView style={styles.optionsContainer}>
             <TouchableOpacity
-              onPress={() => router.push('/(route-alarms)/choose')}
+              onPress={() => router.push('/(route-alarms)/(saved-routes)/saved-routes')}
               style={styles.optionButton}
             >
               <Image
@@ -88,12 +108,12 @@ export default function HomeScreen() {
                 resizeMode="contain"
               />
               <ThemedText type="option" style={{ textAlign: 'center' }}>
-                Set{'\n'}Trip Alarm
+                Choose Saved{'\n'}Trip Alarms
               </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push('/gps-window/main-gps')}
+              onPress={() => router.push('/(route-alarms)/(create-route)/map-screen?mode=create')}
               style={styles.optionButton}
             >
               <Image
@@ -102,7 +122,7 @@ export default function HomeScreen() {
                 resizeMode="contain"
               />
               <ThemedText type="option" style={{ textAlign: 'center' }}>
-                Go to{'\n'}Current Trip
+                Create A{'\n'}Trip Route
               </ThemedText>
             </TouchableOpacity>
 
@@ -126,15 +146,37 @@ export default function HomeScreen() {
 
         <ThemedView style={styles.bottomContainer}>
           <ThemedText type="titleSmall">Recent Trips</ThemedText>
-          {[1, 2, 3].map((_, i) => (
-            <View key={i} style={styles.tripContainer}>
-              <View style={styles.trip}>
-                <ThemedText type="option">Starting point</ThemedText>
-                <ThemedText type="option">to Destination</ThemedText>
+          {recentTrips.length === 0 ? (
+            <ThemedText>No recent trips available.</ThemedText>
+          ) : (
+            recentTrips.map((trip, i) => (
+              <View key={i} style={styles.tripContainer}>
+                <View style={styles.trip}>
+                  <ThemedText
+                    type="option"
+                    style={styles.tripText}
+                    numberOfLines={1} // <-- THIS CLIPS!
+                  >
+                    {trip.from_name || 'Starting point'}
+                  </ThemedText>
+                  <ThemedText
+                    type="option"
+                    style={styles.tripText}
+                    numberOfLines={1} // <-- THIS CLIPS!
+                  >
+                    to {trip.destination_name || 'Destination'}
+                  </ThemedText>
+                </View>
+                <ThemedText
+                    type="option"
+                    style={styles.tripText}
+                    numberOfLines={1} // <-- THIS CLIPS!
+                  >
+                  {new Date(trip.date_start).toLocaleDateString()}
+                </ThemedText>
               </View>
-              <ThemedText type="option">00/00/0000</ThemedText>
-            </View>
-          ))}
+            ))
+          )}
         </ThemedView>
       </ParallaxScrollView>
     </ImageBackground>
@@ -221,6 +263,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     justifyContent: 'space-between',
     flexDirection: 'row',
+  },
+  tripText: {
+    fontSize: 12.5,
+    maxWidth: 160,
+    marginBottom: 5,
+    overflow: 'hidden',
   },
   trip: {
     width: 160,

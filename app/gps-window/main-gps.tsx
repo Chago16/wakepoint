@@ -4,6 +4,7 @@ import { ETAStatusBar } from '@/components/ui/ETAStatusBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
 import { BASE_URL } from '@/config';
+import { getUserId } from '@/utils/session'; // adjust path as needed
 import { getRouteById } from '@/utils/savedRoutesAPI';
 import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
 import { requestLocationPermissions } from '@utils/permissions';
@@ -11,8 +12,25 @@ import * as Location from 'expo-location';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
+import * as turf from '@turf/turf';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { saveTripHistory } from '@/utils/tripHistory';
+
+import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
+import { Vibration } from 'react-native';
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const PinIcon = ({ type, index }: { type: 'from' | 'to' | 'checkpoint'; index?: number }) => {
   if (type === 'checkpoint') {
@@ -64,7 +82,33 @@ export default function MainGPS() {
   const [distanceLeft, setDistanceLeft] = useState('');
   const [etaTime, setEtaTime] = useState('');
   const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [alarmSound, setAlarmSound] = useState('alarm');
+  const [vibrationEnabled, setVibrationEnabled] = useState(false);
+  const [notifEarlyMeters, setNotifEarlyMeters] = useState(300); // default to 300m
+
   const initialDistanceRef = useRef<number | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const elapsedTimeRef = useRef(0); // stores elapsed time in seconds
+  const intervalRef = useRef<number | null>(null);
+
+  const getElapsedSeconds = () => {
+            return elapsedTimeRef.current;
+          };
+
+  const stopElapsedTimer = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+    // 👇 Place it here near your other utility functions or constants
+  const generateHistoryId = () => {
+    return `HIST_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  };
+
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -103,6 +147,11 @@ export default function MainGPS() {
       setFromName(route.from_name || '');
       setDestinationName(route.destination_name || '');
 
+      setAlarmSound(route.alarm_sound || 'alarm');
+      setVibrationEnabled(route.vibration ?? false);
+      setNotifEarlyMeters(route.notif_early || 300);
+
+
       if (from?.lng && from?.lat) {
         setFromCoords([from.lng, from.lat]);
       }
@@ -123,6 +172,7 @@ export default function MainGPS() {
             });
             const data = await res.json();
             setRouteLineFromTo(data.geometry);
+            setIsLoading(false);
           } catch (err) {
             console.error('❌ Route from FROM → TO failed:', err);
           }
@@ -142,12 +192,26 @@ export default function MainGPS() {
             initialDistanceRef.current = data.distance;
           }
           updateStatus(data.duration, data.distance);
+          setIsLoading(false);
         } catch (err) {
           console.error('❌ Route from CURRENT → TO failed:', err);
         }
       }
     })();
   }, [savedRouteId]);
+
+  useEffect(() => {
+    if (locationGranted && toCoords) {
+      intervalRef.current = setInterval(() => {
+        elapsedTimeRef.current += 1;
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [locationGranted, toCoords]);
+
 
   useEffect(() => {
     let subscription: Location.LocationSubscription;
@@ -168,6 +232,24 @@ export default function MainGPS() {
             location.coords.latitude,
           ];
           setCenterCoordinate(newCoords);
+
+          // ✅ Geofencing using Turf.js (300m radius)
+          try {
+            const fromPoint = turf.point(newCoords);
+            const toPoint = turf.point(toCoords);
+            const distanceKm = turf.distance(fromPoint, toPoint); // in kilometers
+
+            if (distanceKm < notifEarlyMeters / 1000) {
+              console.log("🎯 Destination reached!");
+              initAlarm();
+              stopElapsedTimer();
+              console.log('⏱️ Elapsed Seconds:', getElapsedSeconds());
+
+              // you could also trigger something like setShowAlarm(true) here
+            }
+          } catch (err) {
+            console.error('❌ Turf distance error:', err);
+          }
 
           // 🚫 No waypoints here
           const currentBody = {
@@ -197,13 +279,63 @@ export default function MainGPS() {
       );
     };
 
-    startWatching();
-    return () => {
-      if (subscription) subscription.remove();
-    };
-  }, [toCoords]);
+        startWatching();
+        return () => {
+          if (subscription) subscription.remove();
+        };
+      }, [toCoords]);
 
-  const updateStatus = (durationSec: number, distanceMeters: number) => {
+      const getAlarmSoundFile = (name: string) => {
+      switch (name) {
+        case 'alarm1':
+          return require('@/assets/sounds/alarm1.mp3');
+        case 'alarm2':
+          return require('@/assets/sounds/alarm2.mp3');
+        case 'alarm3':
+          return require('@/assets/sounds/alarm3.mp3');
+        default:
+          return require('@/assets/sounds/alarm.mp3');
+      }
+    };
+
+    const initAlarm = async () => {
+    setShowAlarm(true);
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: true,
+        playThroughEarpieceAndroid: false,
+        shouldDuckAndroid: false,
+        interruptionModeAndroid: 1,
+      });
+
+      const soundFile = getAlarmSoundFile(alarmSound);
+
+      const { sound } = await Audio.Sound.createAsync(soundFile, {
+        shouldPlay: true,
+        isLooping: true,
+      });
+
+      soundRef.current = sound;
+      await sound.playAsync();
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Trip Alarm',
+          body: 'You have reached your destination!',
+          sound: true,
+          vibrate: [0, 1000, 1000],
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        },
+        trigger: null,
+      });
+
+      if (vibrationEnabled) {
+        Vibration.vibrate([0, 1000, 1000], true);
+      }
+    };
+
+    const updateStatus = (durationSec: number, distanceMeters: number) => {
     const mins = Math.round(durationSec / 60);
     const km = (distanceMeters / 1000).toFixed(1);
     const eta = new Date(Date.now() + durationSec * 1000);
@@ -214,6 +346,34 @@ export default function MainGPS() {
     setEtaTime(formattedETA);
   };
 
+  const stopAlarm = async () => {
+          setShowAlarm(false);
+
+          const userId = await getUserId();
+
+          const success = await saveTripHistory({
+              user_id: userId ?? 'unknown',
+              history_id: generateHistoryId(),
+              from: { lat: fromCoords?.[1] ?? 0, lng: fromCoords?.[0] ?? 0 },
+              from_name: fromName,
+              destination: { lat: toCoords?.[1] ?? 0, lng: toCoords?.[0] ?? 0 },
+              destination_name: destinationName,
+              checkpoints,
+              date_start: new Date(Date.now() - getElapsedSeconds() * 1000),
+              duration: getElapsedSeconds(),
+            });
+
+          if (soundRef.current) {
+            await soundRef.current.stopAsync();
+            await soundRef.current.unloadAsync();
+            soundRef.current = null;
+          }
+          Vibration.cancel();
+          router.push('/(home)/dashboard');
+        };
+
+  if (isLoading) return <LoadingScreen />;
+      
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -227,7 +387,26 @@ export default function MainGPS() {
 
         <TouchableOpacity
           style={styles.cancelTripButton}
-          onPress={() => router.push('/dashboard')}
+          onPress={async () => {
+              stopElapsedTimer();
+              const userId = await getUserId();
+
+              const success = await saveTripHistory({
+              user_id: userId ?? 'unknown',
+              history_id: generateHistoryId(),
+              from: { lat: fromCoords?.[1] ?? 0, lng: fromCoords?.[0] ?? 0 },
+              from_name: fromName,
+              destination: { lat: toCoords?.[1] ?? 0, lng: toCoords?.[0] ?? 0 },
+              destination_name: destinationName,
+              checkpoints,
+              date_start: new Date(Date.now() - getElapsedSeconds() * 1000),
+              duration: getElapsedSeconds(),
+            });
+
+              console.log('⏱️ Trip ended early, elapsed seconds:', getElapsedSeconds());
+              router.push('/dashboard');
+            }}
+
         >
           <ThemedText type="button" style={styles.cancelTripText}>End Trip Early</ThemedText>
         </TouchableOpacity>
@@ -240,7 +419,12 @@ export default function MainGPS() {
           compassEnabled={false}
           scaleBarEnabled={false}
           attributionEnabled={false}
-          onDidFinishLoadingMap={() => setMapReady(true)}
+          onDidFinishLoadingMap={() => {
+            console.log("🗺️ Map is ready!");
+            setMapReady(true);
+          }}
+
+          
         >
           <Camera
             centerCoordinate={centerCoordinate}
@@ -304,6 +488,7 @@ export default function MainGPS() {
             </ShapeSource>
           )}
         </Mapbox.MapView>
+        
 
         <ETAStatusBar
           fromName={fromName}
@@ -314,7 +499,7 @@ export default function MainGPS() {
           progress={progress}
         />
 
-        <TripAlarmModal visible={showAlarm} onSwipeComplete={() => setShowAlarm(false)} />
+        <TripAlarmModal visible={showAlarm} onSwipeComplete={stopAlarm} />
       </View>
     </>
   );
