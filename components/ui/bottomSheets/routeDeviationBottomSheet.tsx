@@ -10,15 +10,20 @@ import {
 
 type RouteDeviationBottomSheetProps = {
   visible: boolean;
-  onConfirm: () => void;
+  onClose: () => void;
 };
 
 export const RouteDeviationBottomSheet = ({
   visible,
-  onConfirm,
+  onClose,
 }: RouteDeviationBottomSheetProps) => {
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose} // For Android back button
+    >
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           <Image
@@ -35,7 +40,7 @@ export const RouteDeviationBottomSheet = ({
             You seem to be off the planned route.
           </ThemedText>
 
-          <Pressable onPress={onConfirm} style={styles.okButton}>
+          <Pressable onPress={onClose} style={styles.okButton}>
             <ThemedText type="button" style={styles.okText}>
               Got it
             </ThemedText>
@@ -45,6 +50,8 @@ export const RouteDeviationBottomSheet = ({
     </Modal>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   overlay: {
