@@ -1,28 +1,31 @@
 // MainGPS.tsx
+import React, { useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
+import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
+import { Vibration } from 'react-native';
+
+import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
+import * as turf from '@turf/turf';
+
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+
 import { ThemedText } from '@/components/ThemedText';
 import { RouteDeviationBottomSheet } from '@/components/ui/bottomSheets/routeDeviationBottomSheet';
 import { ETAStatusBar } from '@/components/ui/ETAStatusBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
-import { BASE_URL } from '@/config';
-import { getUserId } from '@/utils/session'; // adjust path as needed
-import { getRouteById } from '@/utils/savedRoutesAPI';
-import Mapbox, { Camera, FillLayer, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
-import * as turf from '@turf/turf';
-import { requestLocationPermissions } from '@utils/permissions';
-import * as Location from 'expo-location';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+
+import { requestLocationPermissions } from '@/utils/permissions';
+import { getUserId } from '@/utils/session';
+import { getRouteById } from '@/utils/savedRoutesAPI';
 import { saveTripHistory } from '@/utils/tripHistory';
 
-import * as Haptics from 'expo-haptics';
-import * as Notifications from 'expo-notifications';
-import { Audio } from 'expo-av';
-import { Vibration } from 'react-native';
+import { BASE_URL, MAPBOX_TOKEN } from '@/config';
 
-Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
+Mapbox.setAccessToken(MAPBOX_TOKEN);
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -50,11 +53,11 @@ const PinIcon = ({ type, index }: { type: 'from' | 'to' | 'checkpoint'; index?: 
     );
   }
 
-  const iconName = type === 'from' ? 'location' : 'flag';
-  const iconColor = type === 'from' ? '#8CC63F' : '#104E3B';
+const iconName = type === 'from' ? 'location' : 'flag';
+const iconColor = type === 'from' ? '#8CC63F' : '#104E3B';
 
 
-  return (
+return (
     <View style={{
       backgroundColor: 'white',
       padding: 6,
@@ -284,6 +287,7 @@ export default function MainGPS() {
                   console.warn('🚨 User has deviated from route!');
                   wasInsideRef.current = false;
                   setShowDeviationSheet(true);
+                  Vibration.vibrate(2000);
                 }
 
                 if (isInside && !wasInsideRef.current) {
@@ -517,28 +521,6 @@ export default function MainGPS() {
             </ShapeSource>
           )}
 
-          {routeBufferGeoJSON && (
-          <ShapeSource id="routeBuffer" shape={routeBufferGeoJSON}>
-            <LineLayer
-              id="routeBufferLine"
-              style={{
-                lineColor: '#FFA500', // orange border
-                lineWidth: 3,
-                lineJoin: 'round',
-                lineOpacity: 0.6,
-              }}
-            />
-            <FillLayer
-              id="routeBufferFill"
-              style={{
-                fillColor: '#FFA500',
-                fillOpacity: 0.2,
-              }}
-            />
-          </ShapeSource>
-        )}
-
-
           {routeLineCurrentTo && (
             <ShapeSource id="routeCurrentTo" shape={{ type: 'Feature', geometry: routeLineCurrentTo, properties:{} }}>
               <LineLayer
@@ -566,11 +548,7 @@ export default function MainGPS() {
 
         <TripAlarmModal visible={showAlarm} onSwipeComplete={stopAlarm} />
 
-          <RouteDeviationBottomSheet
-  visible={showDeviationSheet}
-  onClose={() => setShowDeviationSheet(false)}
-/>
-
+        <RouteDeviationBottomSheet visible={showDeviationSheet} onClose={() => setShowDeviationSheet(false)}/>
       </View>
     </>
   );
