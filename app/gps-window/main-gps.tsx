@@ -14,7 +14,6 @@ import * as Location from 'expo-location';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
-import * as turf from '@turf/turf';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { saveTripHistory } from '@/utils/tripHistory';
 
