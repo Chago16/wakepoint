@@ -4,6 +4,7 @@ import { ETAStatusBar } from '@/components/ui/ETAStatusBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
 import { BASE_URL } from '@/config';
+import { getUserId } from '@/utils/session'; // adjust path as needed
 import { getRouteById } from '@/utils/savedRoutesAPI';
 import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
 import { requestLocationPermissions } from '@utils/permissions';
@@ -13,6 +14,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
 import * as turf from '@turf/turf';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { saveTripHistory } from '@/utils/tripHistory';
 
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
@@ -86,9 +88,27 @@ export default function MainGPS() {
   const [vibrationEnabled, setVibrationEnabled] = useState(false);
   const [notifEarlyMeters, setNotifEarlyMeters] = useState(300); // default to 300m
 
-
   const initialDistanceRef = useRef<number | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const elapsedTimeRef = useRef(0); // stores elapsed time in seconds
+  const intervalRef = useRef<number | null>(null);
+
+  const getElapsedSeconds = () => {
+            return elapsedTimeRef.current;
+          };
+
+  const stopElapsedTimer = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+    // 👇 Place it here near your other utility functions or constants
+  const generateHistoryId = () => {
+    return `HIST_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  };
+
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -181,6 +201,19 @@ export default function MainGPS() {
   }, [savedRouteId]);
 
   useEffect(() => {
+    if (locationGranted && toCoords) {
+      intervalRef.current = setInterval(() => {
+        elapsedTimeRef.current += 1;
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [locationGranted, toCoords]);
+
+
+  useEffect(() => {
     let subscription: Location.LocationSubscription;
 
     const startWatching = async () => {
@@ -209,6 +242,9 @@ export default function MainGPS() {
             if (distanceKm < notifEarlyMeters / 1000) {
               console.log("🎯 Destination reached!");
               initAlarm();
+              stopElapsedTimer();
+              console.log('⏱️ Elapsed Seconds:', getElapsedSeconds());
+
               // you could also trigger something like setShowAlarm(true) here
             }
           } catch (err) {
@@ -312,6 +348,21 @@ export default function MainGPS() {
 
   const stopAlarm = async () => {
           setShowAlarm(false);
+
+          const userId = await getUserId();
+
+          const success = await saveTripHistory({
+              user_id: userId ?? 'unknown',
+              history_id: generateHistoryId(),
+              from: { lat: fromCoords?.[1] ?? 0, lng: fromCoords?.[0] ?? 0 },
+              from_name: fromName,
+              destination: { lat: toCoords?.[1] ?? 0, lng: toCoords?.[0] ?? 0 },
+              destination_name: destinationName,
+              checkpoints,
+              date_start: new Date(Date.now() - getElapsedSeconds() * 1000),
+              duration: getElapsedSeconds(),
+            });
+
           if (soundRef.current) {
             await soundRef.current.stopAsync();
             await soundRef.current.unloadAsync();
@@ -336,7 +387,26 @@ export default function MainGPS() {
 
         <TouchableOpacity
           style={styles.cancelTripButton}
-          onPress={() => router.push('/dashboard')}
+          onPress={async () => {
+              stopElapsedTimer();
+              const userId = await getUserId();
+
+              const success = await saveTripHistory({
+              user_id: userId ?? 'unknown',
+              history_id: generateHistoryId(),
+              from: { lat: fromCoords?.[1] ?? 0, lng: fromCoords?.[0] ?? 0 },
+              from_name: fromName,
+              destination: { lat: toCoords?.[1] ?? 0, lng: toCoords?.[0] ?? 0 },
+              destination_name: destinationName,
+              checkpoints,
+              date_start: new Date(Date.now() - getElapsedSeconds() * 1000),
+              duration: getElapsedSeconds(),
+            });
+
+              console.log('⏱️ Trip ended early, elapsed seconds:', getElapsedSeconds());
+              router.push('/dashboard');
+            }}
+
         >
           <ThemedText type="button" style={styles.cancelTripText}>End Trip Early</ThemedText>
         </TouchableOpacity>
