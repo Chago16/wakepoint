@@ -97,6 +97,7 @@ export default function MainGPS() {
   const soundRef = useRef<Audio.Sound | null>(null);
   const elapsedTimeRef = useRef(0); // stores elapsed time in seconds
   const intervalRef = useRef<number | null>(null);
+  const alarmTriggeredRef = useRef(false); // Add this near other refs
 
   const getElapsedSeconds = () => {
             return elapsedTimeRef.current;
@@ -261,7 +262,8 @@ export default function MainGPS() {
             const toPoint = turf.point(toCoords);
             const distanceKm = turf.distance(fromPoint, toPoint); // in kilometers
 
-            if (distanceKm < notifEarlyMeters / 1000) {
+            if (distanceKm < notifEarlyMeters / 1000 && !alarmTriggeredRef.current) {
+              alarmTriggeredRef.current = true;
               console.log("🎯 Destination reached!");
               initAlarm();
               stopElapsedTimer();
@@ -394,6 +396,7 @@ export default function MainGPS() {
   };
 
   const stopAlarm = async () => {
+          alarmTriggeredRef.current = false;
           setShowAlarm(false);
 
           const userId = await getUserId();
