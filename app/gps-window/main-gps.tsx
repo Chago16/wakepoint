@@ -264,6 +264,7 @@ export default function MainGPS() {
 
             if (distanceKm < notifEarlyMeters / 1000 && !alarmTriggeredRef.current) {
               alarmTriggeredRef.current = true;
+              console.log('⏱️ Alarm Triggered:', alarmTriggeredRef);
               console.log("🎯 Destination reached!");
               initAlarm();
               stopElapsedTimer();
@@ -396,7 +397,7 @@ export default function MainGPS() {
   };
 
   const stopAlarm = async () => {
-          alarmTriggeredRef.current = false;
+          alarmTriggeredRef.current = true;
           setShowAlarm(false);
 
           const userId = await getUserId();
