@@ -1,31 +1,41 @@
+import React, { useEffect, useState } from 'react';
 import { ThemedText } from '@/components/ThemedText';
 import { ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
+import { getUserId } from '@/utils/session'; // adjust path if needed
+import { getTripHistories } from '@/utils/tripHistory'; // adjust path if needed
 
-const sampleRoutes = [
-  {
-    date: '06/14/2025',
-    start: 'Home',
-    checkpoints: ['Checkpoint A', 'Checkpoint B'],
-    destination: 'Office',
-    duration: '3 hours',
-  },
-  {
-    date: '06/10/2025',
-    start: 'School',
-    checkpoints: ['Checkpoint 1', 'Checkpoint 2'],
-    destination: 'Mall',
-    duration: '2 hours',
-  },
-  {
-    date: '06/01/2025',
-    start: 'Gym',
-    checkpoints: ['Checkpoint X'],
-    destination: 'Coffee Shop',
-    duration: '1 hour',
-  },
-];
 
 export default function HistoryScreen() {
+  const [tripHistory, setTripHistory] = useState([]);
+
+  useEffect(() => {
+    async function fetchHistory() {
+      const userId = await getUserId();
+      if (!userId) return;
+
+      try {
+        const trips = await getTripHistories(userId);
+        setTripHistory(trips);
+      } catch (error) {
+        console.error('Failed to load trip history:', error);
+      }
+    }
+    fetchHistory();
+  }, []);
+
+  function formatDuration(seconds) {
+    if (seconds >= 3600) {
+      const hours = Math.floor(seconds / 3600);
+      return `${hours} hour${hours > 1 ? 's' : ''}`;
+    } else if (seconds >= 60) {
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes} minute${minutes > 1 ? 's' : ''}`;
+    } else {
+      return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+    }
+  }
+
+
   return (
     <ImageBackground
       source={require('@/assets/images/dashboardBG.png')}
@@ -33,57 +43,58 @@ export default function HistoryScreen() {
       resizeMode="cover"
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Protruding Title */}
         <View style={styles.titleWrapper}>
           <ThemedText type="titleSmall">Trip History</ThemedText>
         </View>
 
-        {/* Route Cards */}
         <View style={styles.cardContainer}>
-          {sampleRoutes.map((route, index) => (
-            <View key={index} style={styles.tripCard}>
-              <View style={styles.timelineLine} />
+          {tripHistory.length === 0 ? (
+            <ThemedText>No trip history available.</ThemedText>
+          ) : (
+            tripHistory.map((route, index) => (
+              <View key={index} style={styles.tripCard}>
+                <View style={styles.timelineLine} />
 
-              {/* Starting Point */}
-              <View style={styles.checkpoint}>
-                <View style={styles.checkIconCircle} />
-                <View style={styles.checkpointTextBox}>
-                  <ThemedText type="defaultSemiBold">
-                    {route.start}
-                  </ThemedText>
-                  <ThemedText type="default" style={styles.dateText}>
-                    {route.date}
-                  </ThemedText>
-                </View>
-              </View>
-
-              {/* Checkpoints */}
-              {route.checkpoints.map((cp, i) => (
-                <View key={i} style={styles.checkpoints}>
-                  <View style={styles.line} />
-                  <View style={styles.checkpointDot} />
-                  <View style={styles.checkpointDetail}>
-                    <ThemedText type="default">{cp}</ThemedText>
+                <View style={styles.checkpoint}>
+                  <View style={styles.checkIconCircle} />
+                  <View style={styles.checkpointTextBox}>
+                    <ThemedText type="defaultSemiBold" style={styles.fromNameText}>
+                      {route.from_name || 'Start'}
+                    </ThemedText>
+                    <ThemedText type="default" style={styles.dateText}>
+                      {new Date(route.date_start).toLocaleDateString()}
+                    </ThemedText>
                   </View>
                 </View>
-              ))}
 
-              {/* Destination */}
-              <View style={styles.checkpoint}>
-                <View style={styles.finalPin} />
-                <View style={styles.checkpointTextBox}>
-                  <ThemedText type="defaultSemiBold">
-                    {route.destination}
-                  </ThemedText>
-                </View>
-                <View style={styles.durationPill}>
-                  <ThemedText type="default" style={styles.durationText}>
-                    {route.duration}
-                  </ThemedText>
+                {route.checkpoints.map((cp, i) => (
+                  <View key={i} style={styles.checkpoints}>
+                    <View style={styles.line} />
+                    <View style={styles.checkpointDot} />
+                    <View style={styles.checkpointDetail}>
+                      <ThemedText type="default">
+                        {cp.name || `Checkpoint ${i + 1}`}
+                      </ThemedText>
+                    </View>
+                  </View>
+                ))}
+
+                <View style={styles.checkpoint}>
+                  <View style={styles.finalPin} />
+                  <View style={styles.checkpointTextBox}>
+                    <ThemedText type="defaultSemiBold">
+                      {route.destination_name || 'Destination'}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.durationPill}>
+                    <ThemedText type="default" style={styles.durationText}>
+                      {formatDuration(route.duration)}
+                    </ThemedText>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
     </ImageBackground>
@@ -165,6 +176,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     flex: 1,
     paddingRight: 10,
+    alignItems: 'center',
+  },
+  fromNameText: {
+    flexShrink: 1,
+    flexBasis: 0,
+    marginRight: 8,
   },
   dateText: {
     fontSize: 12,
