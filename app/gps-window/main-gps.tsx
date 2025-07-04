@@ -520,9 +520,9 @@ export default function MainGPS() {
             animationDuration={1000}
           />
 
-          {mapReady && locationGranted && (
-            <Mapbox.UserLocation visible={true} showsUserHeadingIndicator={true} />
-          )}
+        
+          <Mapbox.UserLocation visible={true} showsUserHeadingIndicator={true} />
+          
 
           {fromCoords && (
             <PointAnnotation id="from" coordinate={fromCoords}>
