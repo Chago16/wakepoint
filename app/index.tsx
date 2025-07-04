@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Redirect } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { getUserId } from '@utils/session';
 
 export default function Index() {
@@ -16,5 +16,10 @@ export default function Index() {
 
   if (isLoggedIn === null) return null; // ⏳ wait for session check
 
-  return <Redirect href={isLoggedIn ? '/(home)/dashboard' : '/login'} />;
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Redirect href={isLoggedIn ? '/(home)/dashboard' : '/login'} />
+    </>
+  );
 }

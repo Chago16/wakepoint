@@ -468,7 +468,7 @@ export default function MainGPS() {
         <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={() => router.push('/dashboard')} style={styles.backCircle}>
             <IconSymbol name="arrow.left.circle" size={20} color="#145E4D" />
-            <ThemedText type="defaultSemiBold" style={styles.backText}>Back</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.backText}>Cancel</ThemedText>
           </TouchableOpacity>
         </View>
 
