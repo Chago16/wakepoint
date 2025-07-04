@@ -25,6 +25,9 @@ import { saveTripHistory } from '@/utils/tripHistory';
 
 import { BASE_URL, MAPBOX_TOKEN } from '@/config';
 
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+
 Mapbox.setAccessToken(MAPBOX_TOKEN);
 
 Notifications.setNotificationHandler({
@@ -98,6 +101,7 @@ export default function MainGPS() {
   const elapsedTimeRef = useRef(0); // stores elapsed time in seconds
   const intervalRef = useRef<number | null>(null);
   const alarmTriggeredRef = useRef(false); // Add this near other refs
+  const locationSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
 
   const getElapsedSeconds = () => {
             return elapsedTimeRef.current;
@@ -326,7 +330,7 @@ export default function MainGPS() {
             console.error('❌ Live route update failed:', err);
           }
         }
-      );
+      ); locationSubscriptionRef.current = subscription;
     };
 
         startWatching();
@@ -334,6 +338,38 @@ export default function MainGPS() {
           if (subscription) subscription.remove();
         };
       }, [toCoords, routeBufferGeoJSON]);
+
+      useFocusEffect(
+        useCallback(() => {
+          // 🔛 Screen focused — do nothing here
+
+          return () => {
+            // 🔻 Screen unfocused — clean up here
+
+            console.log('🧹 MainGPS screen cleanup');
+
+            if (locationSubscriptionRef.current) {
+              locationSubscriptionRef.current.remove();
+              locationSubscriptionRef.current = null;
+              console.log('📍 watchPositionAsync stopped');
+            }
+
+            // Stop timer
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+
+            stopElapsedTimer();
+            if (soundRef.current) {
+              soundRef.current.stopAsync();
+              soundRef.current.unloadAsync();
+              soundRef.current = null;
+            }
+            Vibration.cancel();
+          };
+        }, [])
+      );
 
       const getAlarmSoundFile = (name: string) => {
       switch (name) {
