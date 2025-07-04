@@ -1,16 +1,19 @@
 // MainGPS.tsx
 import { ThemedText } from '@/components/ThemedText';
+import { RouteDeviationBottomSheet } from '@/components/ui/bottomSheets/routeDeviationBottomSheet';
 import { ETAStatusBar } from '@/components/ui/ETAStatusBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { TripAlarmModal } from '@/components/ui/modals/tripAlarm';
 import { BASE_URL } from '@/config';
 import { getRouteById } from '@/utils/savedRoutesAPI';
-import Mapbox, { Camera, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
+import Mapbox, { Camera, FillLayer, LineLayer, PointAnnotation, ShapeSource } from '@rnmapbox/maps';
+import * as turf from '@turf/turf';
 import { requestLocationPermissions } from '@utils/permissions';
 import * as Location from 'expo-location';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
+
 
 Mapbox.setAccessToken('pk.eyJ1Ijoid2FrZXBvaW50IiwiYSI6ImNtYnp2NGx1YjIyYXYya3BxZW83Z3ppN3EifQ.uLuWroM_W-fqiE-nTHL6tw');
 
@@ -33,6 +36,7 @@ const PinIcon = ({ type, index }: { type: 'from' | 'to' | 'checkpoint'; index?: 
 
   const iconName = type === 'from' ? 'location' : 'flag';
   const iconColor = type === 'from' ? '#8CC63F' : '#104E3B';
+
 
   return (
     <View style={{
@@ -65,6 +69,12 @@ export default function MainGPS() {
   const [etaTime, setEtaTime] = useState('');
   const [progress, setProgress] = useState(0);
   const initialDistanceRef = useRef<number | null>(null);
+
+  const [routeBufferGeoJSON, setRouteBufferGeoJSON] = useState<any>(null);
+  const [showDeviationSheet, setShowDeviationSheet] = useState(false);
+  const deviatedRef = useRef(false);
+  const wasInsideRef = useRef(true);
+
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -123,6 +133,17 @@ export default function MainGPS() {
             });
             const data = await res.json();
             setRouteLineFromTo(data.geometry);
+            if (data.geometry?.coordinates) {
+              const line = turf.lineString(data.geometry.coordinates); // no coords variable needed
+              const buffer = turf.buffer(line, 0.05, { units: 'kilometers' }); // 50 meters
+              setRouteBufferGeoJSON(buffer);
+              console.log('📍 FROM → TO route coords:', data.geometry.coordinates);
+              if (buffer?.geometry?.coordinates?.[0]) {
+                console.log('🟧 Buffer start:', buffer.geometry.coordinates[0][0]);
+                console.log('🟧 Buffer end:', buffer.geometry.coordinates[0].slice(-1)[0]);
+              }
+
+            }
           } catch (err) {
             console.error('❌ Route from FROM → TO failed:', err);
           }
@@ -153,8 +174,8 @@ export default function MainGPS() {
     let subscription: Location.LocationSubscription;
 
     const startWatching = async () => {
-      const granted = await requestLocationPermissions();
-      if (!granted || !toCoords) return;
+      const granted = true;
+      if (!granted || !toCoords || !routeBufferGeoJSON) return;
 
       subscription = await Location.watchPositionAsync(
         {
@@ -168,6 +189,30 @@ export default function MainGPS() {
             location.coords.latitude,
           ];
           setCenterCoordinate(newCoords);
+              // Check for route deviation
+              if (routeBufferGeoJSON) { //
+                const point = turf.point(newCoords);
+                const isInside = turf.booleanPointInPolygon(point, routeBufferGeoJSON);
+
+                console.log('[📍 Deviation Check]', {
+                  current: newCoords,
+                  insideBuffer: isInside,
+                  alreadyDeviated: deviatedRef.current,
+                });
+
+                if (!isInside && wasInsideRef.current) {
+                  console.warn('🚨 User has deviated from route!');
+                  wasInsideRef.current = false;
+                  setShowDeviationSheet(true);
+                }
+
+                if (isInside && !wasInsideRef.current) {
+                  console.log('✅ User re-entered the route.');
+                  wasInsideRef.current = true;
+                  setShowDeviationSheet(false);
+                }
+              }
+
 
           // 🚫 No waypoints here
           const currentBody = {
@@ -201,7 +246,7 @@ export default function MainGPS() {
     return () => {
       if (subscription) subscription.remove();
     };
-  }, [toCoords]);
+  }, [toCoords, routeBufferGeoJSON]);
 
   const updateStatus = (durationSec: number, distanceMeters: number) => {
     const mins = Math.round(durationSec / 60);
@@ -276,7 +321,7 @@ export default function MainGPS() {
           ))}
 
           {routeLineFromTo && (
-            <ShapeSource id="routeFromTo" shape={{ type: 'Feature', geometry: routeLineFromTo }}>
+            <ShapeSource id="routeFromTo" shape={{ type: 'Feature', geometry: routeLineFromTo, properties:{}  }}>
               <LineLayer
                 id="routeFromToLayer"
                 style={{
@@ -290,8 +335,30 @@ export default function MainGPS() {
             </ShapeSource>
           )}
 
+          {routeBufferGeoJSON && (
+          <ShapeSource id="routeBuffer" shape={routeBufferGeoJSON}>
+            <LineLayer
+              id="routeBufferLine"
+              style={{
+                lineColor: '#FFA500', // orange border
+                lineWidth: 3,
+                lineJoin: 'round',
+                lineOpacity: 0.6,
+              }}
+            />
+            <FillLayer
+              id="routeBufferFill"
+              style={{
+                fillColor: '#FFA500',
+                fillOpacity: 0.2,
+              }}
+            />
+          </ShapeSource>
+        )}
+
+
           {routeLineCurrentTo && (
-            <ShapeSource id="routeCurrentTo" shape={{ type: 'Feature', geometry: routeLineCurrentTo }}>
+            <ShapeSource id="routeCurrentTo" shape={{ type: 'Feature', geometry: routeLineCurrentTo, properties:{} }}>
               <LineLayer
                 id="routeCurrentToLayer"
                 style={{
@@ -315,6 +382,12 @@ export default function MainGPS() {
         />
 
         <TripAlarmModal visible={showAlarm} onSwipeComplete={() => setShowAlarm(false)} />
+
+          <RouteDeviationBottomSheet
+  visible={showDeviationSheet}
+  onClose={() => setShowDeviationSheet(false)}
+/>
+
       </View>
     </>
   );
