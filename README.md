@@ -1,50 +1,86 @@
-# Welcome to your Expo app 👋
+# WakePoint
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+WakePoint is a mobile app for planning trips, saving routes, and setting route-aware alarms. It includes a React Native (Expo + TypeScript) frontend and a lightweight Node.js backend for user, route, and trip management.
 
-## Get started
+## Key Features
+
+- Plan and save routes
+- Set alarms tied to route checkpoints
+- View trip history and manage saved routes
+- Map integration (Mapbox)
+
+## Tech Stack
+
+- Frontend: Expo, React Native, TypeScript
+- Backend: Node.js, Express
+- Maps: Mapbox
+
+## Repo Structure (top-level)
+
+- `app/` — Expo app source (screens, routes, components)
+- `backend/` — Node/Express API server and controllers
+- `components/`, `ui/` — Shared UI components used by the app
+- `utils/`, `hooks/`, `constants/` — Helper utilities, hooks, and constants
+
+## Prerequisites
+
+- Node.js (16+ recommended)
+- npm or Yarn
+- Expo CLI (optional, for local Expo tooling)
+- Mapbox access token (if running map features)
+
+## Quick Start — Development
 
 1. Install dependencies
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
 ```bash
-npm run reset-project
+npm install
+cd backend && npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Configure env variables
 
-## Learn more
+Create a file named `.env` in the project root (or set environment variables) with at least:
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+MAPBOX_ACCESS_TOKEN=your_mapbox_token
+BACKEND_URL=http://localhost:3000
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+3. Start the backend server
 
-## Join the community
+```bash
+node backend/server.js
+# or if backend has a script: npm run dev --prefix backend
+```
 
-Join our community of developers creating universal apps.
+4. Start the Expo app
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm start
+# or: expo start
+```
+
+Open the app in the Expo Go app or an emulator.
+
+## Backend Notes
+
+- The backend lives in the `backend/` folder and exposes REST endpoints for authentication, saved routes, trip history, and Mapbox-related helpers. Check `backend/server.js` and the `controllers/` folder for routes and implementation.
+
+## Development Tips
+
+- Use the simulator or Expo Go for quick iteration.
+- When changing native-like behavior, test on physical devices where possible.
+- If Mapbox features fail, verify `MAPBOX_ACCESS_TOKEN` and `BACKEND_URL` are correct.
+
+## Contributing
+
+Please open issues or pull requests for bug fixes, feature suggestions, or documentation updates. When submitting code changes, include a short description and steps to reproduce if applicable.
+
+## License
+
+This project is provided under the terms in `LICENSE`.
+
+---
+
+If you'd like, I can also add more detailed setup instructions, a sample `.env.example`, or expand the Features section with screenshots and API docs. Which would you prefer next?
